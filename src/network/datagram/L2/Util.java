@@ -1,0 +1,35 @@
+package network.datagram.L2;
+
+public class Util {
+	/**
+	 * MACアドレス文字列を6バイト配列に変換する。
+	 * @param addr
+	 * @return
+	 */
+    public static byte[] addr2Bytes(String addr) {
+        String[] addrs = addr.split("\\:", 0);
+        byte[] bytes = new byte[6];
+        bytes[0] = (byte)Integer.parseInt(addrs[0], 16);
+        bytes[1] = (byte)Integer.parseInt(addrs[1], 16);
+        bytes[2] = (byte)Integer.parseInt(addrs[2], 16);
+        bytes[3] = (byte)Integer.parseInt(addrs[3], 16);
+        bytes[4] = (byte)Integer.parseInt(addrs[4], 16);
+        bytes[5] = (byte)Integer.parseInt(addrs[5], 16);
+        return bytes;
+    }
+
+    /**
+     * 6バイト配列をMACアドレス文字列に変換する。
+     * @param bytes
+     * @return
+     */
+    public static String bytes2Addr(byte[] bytes) {
+        String addr = String.format("%02x", (bytes[0] & 0xFF)) + ":" +
+            String.format("%02x", (bytes[1] & 0xFF)) + ":" +
+            String.format("%02x", (bytes[2] & 0xFF)) + ":" +
+            String.format("%02x", (bytes[3] & 0xFF)) + ":" +
+            String.format("%02x", (bytes[4] & 0xFF)) + ":" +
+            String.format("%02x", (bytes[5] & 0xFF));
+        return addr;
+    }
+}
