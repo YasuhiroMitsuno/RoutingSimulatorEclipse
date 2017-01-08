@@ -1,4 +1,7 @@
-package network.datagram.L2;
+package network.protocol.L2.STP;
+
+import network.datagram.L2.Frame;
+import network.datagram.L2.Util;
 
 public class STPFrame {
     private byte[] bytes;      /* Binary Data */
@@ -33,6 +36,20 @@ public class STPFrame {
         setMaxAge(20);
         setHelloTime(2);
         setForwardDelay(15);
+    }
+    
+    public STPFrame(BPDU bpdu) {
+    	this();
+    	setRootId(Util.longToBytes(bpdu.rootId, 8));
+    	setPathCost(bpdu.rootPathCost);
+        setBridgeId(Util.longToBytes(bpdu.bridgeId, 8));
+        setPortId(bpdu.portId);
+        setMessageAge(bpdu.messageAge);
+        setMaxAge(bpdu.maxAge);
+        setHelloTime(bpdu.helloTime);
+        setForwardDelay(bpdu.forwardDelay);
+        setFlags(bpdu.topologyChangeAcknowledgement? this.flags | 0x80: this.flags ^ 0x80); 
+        setFlags(bpdu.topologyChange? this.flags | 0x01: this.flags ^ 0x01); 
     }
 
     public STPFrame(byte[] bytes) {
@@ -103,9 +120,9 @@ public class STPFrame {
         for (int i=0;i<8;i++) {
             this.bytes[i+5] = this.rootId[i];
         }
-        this.rootBridgePriority = (bytes[0] & 0xFF) << 8 | bytes[1] & 0xFF;
+        this.rootBridgePriority = (rootId[0] & 0xFF) << 8 | rootId[1] & 0xFF;
         for (int i=0;i<6;i++) {
-            this.rootBridgeAddress[i] = bytes[i+2];
+            this.rootBridgeAddress[i] = rootId[i+2];
         }
     }
     
@@ -142,9 +159,9 @@ public class STPFrame {
         for (int i=0;i<8;i++) {
             this.bytes[i+17] = this.bridgeId[i];
         }
-        this.bridgePriority = (bytes[0] & 0xFF) << 8 | bytes[1] & 0xFF;
+        this.bridgePriority = (bridgeId[0] & 0xFF) << 8 | bridgeId[1] & 0xFF;
         for (int i=0;i<6;i++) {
-            this.bridgeAddress[i] = bytes[i+2];
+            this.bridgeAddress[i] = bridgeId[i+2];
         }
     }
 

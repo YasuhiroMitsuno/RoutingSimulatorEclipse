@@ -15,7 +15,7 @@ import network.protocol.L2.Ethernet;
 
 public abstract class Device {
     protected Port[] ports;
-    protected int size = 1;
+    protected int size = 2;
     protected String name;
     public Point2D position;
     public Boolean selected;
@@ -83,7 +83,7 @@ public abstract class Device {
     */
     
     /* Add the received queue to the output queue */
-    public void sendFrame(Frame frame) {
+    public void sendFrame(int portNo, Frame frame) {
         if (frame.getLength() > MTU + 18) {
             MakeFragmentThread mfThread = new MakeFragmentThread();
             mfThread.setDelegate(this);
@@ -91,7 +91,7 @@ public abstract class Device {
             mfThread.start();
             return;
         }
-        ports[0].send(frame);
+        ports[portNo-1].send(frame);
     }
 
     public Port getPort(int index) {

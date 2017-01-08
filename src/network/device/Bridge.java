@@ -43,7 +43,7 @@ public class Bridge extends Device {
     }
     
     public void fetch(Frame frame, int number) {
-    	stp.fetchFrame(frame, number);
+    	stp.receivedSTPFrame(number + 1, frame);
  /*
         super.fetch(frame, number);
         SendFrameThread sfThread = new SendFrameThread();

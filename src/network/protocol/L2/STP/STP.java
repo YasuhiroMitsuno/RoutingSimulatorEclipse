@@ -8,26 +8,29 @@ import java.util.Map;
 import java.util.TimerTask;
 
 import network.datagram.L2.Frame;
-import network.datagram.L2.STPFrame;
 import network.datagram.L2.Util;
 import network.device.Device;
 import network.device.Port;
 import network.protocol.L2.STP.STP.State;
 
 public class STP extends Thread {
+	private Device delegate = null;
+	private java.util.Timer timer;
+	
+    /* From IEEE Standard 802.1D 1998 Edition */	
 	public enum State {
         Disabled, Listening, Learning, Forwarding, Blocking
 	}
-	
 	final static int ConfigBPDUType = 0;
 	final static int TCNBPDUType = 128;
-	private Map<Integer, STPPortState> states = null;	
-	private Device delegate = null;
-
-	private int bridgePriority = 32779;
-	private byte[] bridgeAddress;
+	final static int Zero = 0;	
+	final static int One = 1;
+	final static int NoPort = 0;
+	final static int NoOfPorts = 2;
+	final static int AllPorts = NoOfPorts + 1;
+	final static int DefaultPathCost = 10;
+	final static int MessageAgeIncrement = 1;
 	
-    /* From IEEE Standard 802.1D 1998 Edition */
 	private BridgeData bridgeInfo;
 	private PortData[] portInfo;
 	private BPDU[] configBPDU;
@@ -38,112 +41,82 @@ public class STP extends Thread {
 	private Timer[] messageAgeTimer;
 	private Timer[] forwardDelayTimer;
 	private Timer[] holdTimer;
-	
-    private Map<Port, BPDU> configurationBPDUs = null;
-    
         
-    public STP() {
-		
-	}
-	
 	public STP(Device delegate) {
 		this.delegate = delegate;
+    	this.bridgeInfo = new BridgeData();
+    	this.portInfo = new PortData[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.portInfo[portNo] = new PortData();
+    		this.portInfo[portNo].portId = portNo;
+    	}
+    	this.configBPDU = new BPDU[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.configBPDU[portNo] = new BPDU();
+    	}
+    	this.tcnBPDU = new BPDU[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.tcnBPDU[portNo] = new BPDU();
+    	}	
+    	this.helloTimer = new Timer();
+    	this.tcnTimer = new Timer();
+    	this.topologyChangeTimer = new Timer();
+    	this.messageAgeTimer = new Timer[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.messageAgeTimer[portNo] = new Timer();
+    	}
+    	this.forwardDelayTimer = new Timer[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.forwardDelayTimer[portNo] = new Timer();
+    	}
+    	this.holdTimer = new Timer[AllPorts];
+    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    		this.holdTimer[portNo] = new Timer();
+    	}
+    	
+    	setBridgeAddress(delegate.getMACAddress());
+    	
+		initialisation();
+		this.timer = new java.util.Timer();
+		timer.schedule(new TickTask(this), 1000, 1000);
+	}
+	
+	private void sendConfigBPDU(int portNo, BPDU config) {
 		
-		/* Initialize port state as "disabled" for each port of device */
-		states = new HashMap<Integer, STPPortState>();
-		for (Port port: delegate.getPorts()) {
-			states.put(port.hashCode(), new STPPortStateDisabled());
-		}
-		bridgeIdentifier = new byte[8];
-		bridgePriority = 32779;
-		bridgeAddress = delegate.getMACAddress();
-		bridgeIdentifier[0] = (byte)(bridgePriority >> 8 & 0xFF);  
-		bridgeIdentifier[1] = (byte)(bridgePriority & 0xFF);
-		for (int i=0;i<6;i++) {
-			bridgeIdentifier[i+2] = bridgeAddress[i];
-		}
-		designatedRoot = new byte[8];
-		System.arraycopy(bridgeIdentifier, 0, designatedRoot, 0, 8);
+		STPFrame stpFrame = new STPFrame(config);
+		Frame frame = new Frame();
+		frame.setData(stpFrame.getBytes());
+		delegate.sendFrame(portNo, frame);
 	}
 	
-	public int getHelloTime() {
-		return helloTime;
-	}
+	public void receivedSTPFrame(int portNo, Frame frame) {
 
-	public void setHelloTime(int helloTime) {
-		this.helloTime = helloTime;
-	}
-
-	public int getMaxAge() {
-		return maxAge;
-	}
-
-	public void setMaxAge(int maxAge) {
-		this.maxAge = maxAge;
-	}
-
-	public int getForwardDelay() {
-		return forwardDelay;
-	}
-
-	public void setForwardDelay(int forwardDelay) {
-		this.forwardDelay = forwardDelay;
-	}
-	
-	public void sendHello() {
-		if (!Arrays.equals(designatedRoot, bridgeIdentifier)) return;
-		for (Port port: delegate.getPorts()) {
-			if (!states.get(port.hashCode()).willSendBPDU()) continue;
-			STPFrame stpFrame = new STPFrame();
-			stpFrame.setHelloTime(this.helloTime);
-			stpFrame.setBridgePriority(this.bridgePriority);
-			stpFrame.setBridgeAddress(this.bridgeAddress);
-			stpFrame.setRootId(this.designatedRoot);
-			//stpFrame.setRootId(stpFrame.getBridgeId());
-			//System.out.println(frame.description());
-			//for (Port port: delegate.getPorts()) {
-				stpFrame.setPathCost(this.rootPathCost + 2);
-				Frame frame = new Frame();
-				frame.setData(stpFrame.getBytes());
-				frame.setDestination("FF:FF:FF:FF:FF:FF");
-				frame.setSource(delegate.getMACAddress());
-				delegate.sendFrame(frame);
-			//}
-		}
-	}
-	
-	public void fetchFrame(Frame frame, int number) {
 		STPFrame stpFrame = new STPFrame(frame);
-		System.out.println(stpFrame.description());
-		if(Util.isSmallAddr(stpFrame.getRootId(), this.designatedRoot, 8)) {
-			this.designatedRoot = stpFrame.getRootId();
-			this.rootPathCost = stpFrame.getPathCost();
-			
-			this.rootPort = number;
+		BPDU bpdu = new BPDU(stpFrame);
+		if (bpdu.type == ConfigBPDUType) {
+			receivedConfigBPDU(portNo, bpdu);
+		} else if (bpdu.type == TCNBPDUType) {
+			receivedTCNBPDU(portNo, bpdu);
 		}
 	}
 	
-	public void run() {
-		setState(new STPPortStateBlocking());
-		Timer timer = new Timer();
-		timer.schedule(new SwitchTask(this), maxAge * 1000);
-		timer.schedule(new SendHelloTask(this), this.helloTime * 1000, this.helloTime * 1000);
+	private void setBridgeAddress(byte[] address) {
+		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | Util.bytesToLong(address, 6) << 16;
 	}
-	
-	public void setState(STPPortState state) {
-		if (this.state != null) {
-			System.out.println("state change " + this.state.getStateName() + "->" + state.getStateName());
-		} else {
-			System.out.println("state change ->" + state.getStateName());
-		}
-		this.state = state;
-	}
-	
-    public void read(Frame frame) {
-        state.actionForUserFrame();
-    }
     
-    /* From IEEE Standard 802.1D 1998 Edition */
+    private class TickTask extends TimerTask {
+    	private STP delegate;
+    	
+    	TickTask(STP delegate) {
+    		this.delegate = delegate;
+    	}
+    	
+		public void run() { 
+			delegate.tick();
+		}
+	}
+		
+    /* Referenced from IEEE Standard 802.1D 1998 Edition */
     public void transmitConfig(int portNo) {
     	if (holdTimer[portNo].active) {
     		portInfo[portNo].configPending = true;
@@ -174,17 +147,17 @@ public class STP extends Thread {
     }
     
     private boolean rootBridge() {
-    	return Arrays.equals(bridgeInfo.designatedRoot, bridgeInfo.bridgeId);
+    	return bridgeInfo.designatedRoot == bridgeInfo.bridgeId;
     }
     
     boolean supersedesPortInfo(int portNo, BPDU config) {
-    	return (Util.isSmallAddr(config.rootId, portInfo[portNo].designatedRoot, 8) ||
-    			(Arrays.equals(config.rootId, portInfo[portNo].designatedRoot) &&
+    	return (config.rootId < portInfo[portNo].designatedRoot ||
+    			(config.rootId == portInfo[portNo].designatedRoot &&
     			(config.rootPathCost < portInfo[portNo].designatedCost ||
     			(config.rootPathCost == portInfo[portNo].designatedCost &&
-    			(Util.isSmallAddr(config.bridgeId, portInfo[portNo].designatedBridge, 8) ||
-    				(Arrays.equals(config.bridgeId, portInfo[portNo].designatedBridge) &&
-    				(!Arrays.equals(config.bridgeId, bridgeInfo.bridgeId) || config.portId <= portInfo[portNo].designatedPort)    					 )
+    			(config.bridgeId < portInfo[portNo].designatedBridge ||
+    				(config.bridgeId == portInfo[portNo].designatedBridge &&
+    				(config.bridgeId != bridgeInfo.bridgeId || config.portId <= portInfo[portNo].designatedPort)    					 )
     			)
     			)
     			)
@@ -209,7 +182,7 @@ public class STP extends Thread {
     }
     
     public void configBPDUGeneration() {
-    	for (int portNo = 0; portNo < 8; portNo++) {
+    	for (int portNo = One; portNo < NoOfPorts; portNo++) {
     		if (designatedPort(portNo) && portInfo[portNo].state != State.Disabled) {
     			transmitConfig(portNo);
     		}
@@ -217,7 +190,7 @@ public class STP extends Thread {
     }
     
     private boolean designatedPort(int portNo) {
-    	return Arrays.equals(portInfo[portNo].designatedBridge, bridgeInfo.bridgeId) &&
+    	return portInfo[portNo].designatedBridge == bridgeInfo.bridgeId &&
     			portInfo[portNo].designatedPort == portInfo[portNo].portId;
     }
     
@@ -248,14 +221,14 @@ public class STP extends Thread {
     	
     	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
     		if ((!designatedPort(portNo) && (portInfo[portNo].state != State.Disabled) && 
-    				Util.isSmallAddr(portInfo[portNo].designatedRoot, bridgeInfo.bridgeId, 8) ) &&
-    				(rootPort == NoPort || Util.isSmallAddr(portInfo[portNo].designatedRoot, portInfo[rootPort].designatedRoot, 8)) ||
+    				portInfo[portNo].designatedRoot < bridgeInfo.bridgeId ) &&
+    				(rootPort == NoPort || portInfo[portNo].designatedRoot < portInfo[rootPort].designatedRoot) ||
     				( (portInfo[portNo].designatedRoot == portInfo[rootPort].designatedRoot) && 
     				(((portInfo[portNo].designatedCost + portInfo[portNo].pathCost) < (portInfo[rootPort].designatedCost + portInfo[rootPort].pathCost)) ||
     						(((portInfo[portNo].designatedCost + portInfo[portNo].pathCost) == (portInfo[rootPort].designatedCost + portInfo[rootPort].pathCost))
     								&&
-    								(Util.isSmallAddr(portInfo[portNo].designatedBridge, portInfo[rootPort].designatedBridge, 8) || 
-    										(Arrays.equals(portInfo[portNo].designatedBridge, portInfo[rootPort].designatedBridge)
+    								(portInfo[portNo].designatedBridge < portInfo[rootPort].designatedBridge || 
+    										(portInfo[portNo].designatedBridge == portInfo[rootPort].designatedBridge
     												&& ((portInfo[portNo].designatedPort < portInfo[rootPort].designatedPort) ||
     														((portInfo[portNo].designatedPort == portInfo[rootPort].designatedPort) && 
     																portInfo[portNo].portId < portInfo[rootPort].portId)
@@ -279,11 +252,11 @@ public class STP extends Thread {
     
     private void designatedPortSelection() {
     	for (int portNo = One; portNo < NoOfPorts; portNo++) {
-    		if (designatedPort(portNo) || !Arrays.equals(portInfo[portNo].designatedRoot, bridgeInfo.designatedRoot) ||
+    		if (designatedPort(portNo) || portInfo[portNo].designatedRoot != bridgeInfo.designatedRoot ||
     				bridgeInfo.rootPathCost < portInfo[portNo].designatedCost ||
     				((bridgeInfo.rootPathCost == portInfo[portNo].designatedCost) && (
-    						Util.isSmallAddr(bridgeInfo.bridgeId, portInfo[portNo].designatedBridge, 8) ||
-    						( (Arrays.equals(bridgeInfo.bridgeId, portInfo[portNo].designatedBridge) && 
+    						bridgeInfo.bridgeId < portInfo[portNo].designatedBridge ||
+    						( (bridgeInfo.bridgeId == portInfo[portNo].designatedBridge && 
     								(portInfo[portNo].portId <= portInfo[portNo].designatedPort)))))) {
     			becomeDesignatedPort(portNo);
     		}
@@ -333,7 +306,8 @@ public class STP extends Thread {
     			}
     		}
     		setPortState(portNo, State.Blocking);
-    		stopForwardingDelayTimer(portNo);
+
+    		stopForwardDelayTimer(portNo);
     	}
     }
     
@@ -342,48 +316,434 @@ public class STP extends Thread {
     }
 	
     private void topologyChangeDetection() {
-    	if (rootBridge())
-    }
-    
-    private class SwitchTask extends TimerTask {
-    	private STP delegate;
-    	
-    	SwitchTask(STP delegate) {
-    		this.delegate = delegate;
-    	}
-    	
-		public void run() { 
-			delegate.setState(delegate.state.getNextState());
-		}
-	}
-    
-    private class SendHelloTask extends TimerTask {
-    	private STP delegate;
-    	
-    	SendHelloTask(STP delegate) {
-    		this.delegate = delegate;
-    	}
+    	if (rootBridge()) {
+    		bridgeInfo.topologyChange = true;
 
-		@Override
-		public void run() {
-			delegate.sendHello();
-		}
+    		startTopologyChangeTimer();
+    	} else if (bridgeInfo.topologyChangeDetected == false) {
+    		transmitTCN();
+    		
+    		startTCNTimer();
+    	}
     	
+    	bridgeInfo.topologyChangeDetected = true;
     }
-}
+    
+    private void topologyChangeAcknowledged() {
+    	bridgeInfo.topologyChangeDetected = false;
+    	stopTCNTimer();
+    }
+    
+    private void acknowwledgeTopologyChange(int portNo) {
+    	portInfo[portNo].topologyChangeAcknowledge = true;
+    	
+    	transmitConfig(portNo);
+    }
+    
+    private void receivedConfigBPDU(int portNo, BPDU config) {
+    	boolean root = rootBridge();
+    	
+    	if (portInfo[portNo].state != State.Disabled) {
+    		if (supersedesPortInfo(portNo, config)) {
+    			recordConfigurationInformation(portNo, config);
+    			
+    			configurationUpdate();
+    			
+    			portStateSelection();
+    			
+    			if (!rootBridge() && root) {
+    				stopHelloTimer();
+    				
+    				if (bridgeInfo.topologyChangeDetected) {
+    					stopTopologyChangeTimer();
+    					
+    					transmitTCN();
+    					
+    					startTCNTimer();
+    				}
+    			}
+    			
+    			if (portNo == bridgeInfo.rootPort) {
+    				recordConfigurationTimeoutValues(config);
+    				
+    				configBPDUGeneration();
+    				
+    				if (config.topologyChangeAcknowledgement) {
+    					topologyChangeAcknowledged();
+    				}
+    			}
+    		} else if (designatedPort(portNo)) {
+    			reply(portNo);
+    		}
+    	}
+    }
+    
+    private void receivedTCNBPDU(int portNo, BPDU tcn) {
+    	if (portInfo[portNo].state != State.Disabled) {
+    		if (designatedPort(portNo)) {
+    			topologyChangeDetection();
+    			
+    			acknowwledgeTopologyChange(portNo);
+    		}
+    	}
+    }
+    
+    private void helloTimerExpiry() {
+    	configBPDUGeneration();
+    	
+    	startHelloTimer();
+    }
+    
+    private void messageAgeTimerExpiry(int portNo) {
+    	boolean root = rootBridge();
+    	
+    	becomeDesignatedPort(portNo);
+    	
+    	configurationUpdate();
+    	
+    	portStateSelection();
+    	
+    	if (rootBridge() && !root) {
+    		bridgeInfo.maxAge = bridgeInfo.bridgeMaxAge;
+    		bridgeInfo.helloTime = bridgeInfo.bridgeHelloTime;
+    		bridgeInfo.forwardDelay = bridgeInfo.bridgeForwardDelay;
+    		
+    		topologyChangeDetection();
+    		
+    		stopTCNTimer();
+    		
+    		configBPDUGeneration();
+    		
+    		startHelloTimer();
+    	}
+    }
+    
+    private void forwardDelayTimerExpiry(int portNo) {
+    	if (portInfo[portNo].state == State.Listening) {
+    		setPortState(portNo, State.Learning);
+    		
+    		startForwardDelayTimer(portNo);
+    	} else if (portInfo[portNo].state == State.Learning) {
+    		setPortState(portNo, State.Forwarding);
+    		
+    		if (designatedForSomePort()) {
+    			if (portInfo[portNo].changeDetectionEnabled == true) {
+    				topologyChangeDetection();
+    			}
+    		}
+    	}
+    }
+    
+    private boolean designatedForSomePort() {
+    	for (int portNo = One; portNo < NoOfPorts; portNo++) {
+    		if (portInfo[portNo].designatedBridge == bridgeInfo.bridgeId) {
+    			return true;
+    		}
+    	}
+    	return false;
+    }
+    
+    private void tcnTimerExpiry() {
+    	transmitTCN();
+    	
+    	startTCNTimer();
+    }
+    
+    private void topologyChangeTimerExpiry() {
+    	bridgeInfo.topologyChangeDetected = false;
+    	bridgeInfo.topologyChange = false;
+    }
+    
+    private void holdTimerExpiry(int portNo) {
+    	if (portInfo[portNo].configPending) {
+    		transmitConfig(portNo);
+    	}
+    }
+    
+    private void initialisation() { 
+    	bridgeInfo.designatedRoot = bridgeInfo.bridgeId;
+    	bridgeInfo.rootPathCost = Zero;
+    	bridgeInfo.rootPort = NoPort;
+    	
+    	bridgeInfo.maxAge = bridgeInfo.bridgeMaxAge;
+    	bridgeInfo.helloTime = bridgeInfo.bridgeHelloTime;
+    	bridgeInfo.forwardDelay = bridgeInfo.bridgeForwardDelay;
+    	
+    	bridgeInfo.topologyChangeDetected = false;
+    	bridgeInfo.topologyChange = false;
+    	stopTCNTimer();
+    	stopTopologyChangeTimer();
+    	
+    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	      initializePort(portNo);
+    	   }
+    	   portStateSelection();
+    	   configBPDUGeneration();
+    	   startHelloTimer();
+    }
+    
+    private void initializePort(int portNo) {
+    	becomeDesignatedPort(portNo);
+    	
+    	setPortState(portNo, State.Blocking);
+    	
+    	portInfo[portNo].topologyChangeAcknowledge = false;
+    	
+    	portInfo[portNo].configPending = false;
+    	
+    	portInfo[portNo].changeDetectionEnabled = true;
+    	
+    	stopMessageAgeTimer(portNo);
+    	
+    	stopForwardDelayTimer(portNo);
+    	
+    	stopHoldTimer(portNo);
+    }
+    
+    public void enablePort(int portNo) {
+    	initializePort(portNo);
+    	
+    	portStateSelection();
+    }
+    
+    public void disablePort(int portNo) {
+    	boolean root = rootBridge();
+    	
+    	becomeDesignatedPort(portNo);
+    	
+    	setPortState(portNo, State.Disabled);
+    	
+    	portInfo[portNo].topologyChangeAcknowledge = false;
+    	
+    	portInfo[portNo].configPending = false;
+    	
+    	stopMessageAgeTimer(portNo);
+    	
+    	stopForwardDelayTimer(portNo);
+    	
+    	configurationUpdate();
+    	
+    	portStateSelection();
+    	
+    	if (rootBridge() && !root) {
+    		bridgeInfo.maxAge = bridgeInfo.bridgeMaxAge;
+    		bridgeInfo.helloTime = bridgeInfo.bridgeHelloTime;
+    		bridgeInfo.forwardDelay = bridgeInfo.bridgeForwardDelay;
+    		
+    		topologyChangeDetection();
+    		
+    		stopTCNTimer();
+    		
+    		configBPDUGeneration();
+    		
+    		startHelloTimer();
+    	}
+    }
+    
+    private void setBridgePriority(long newBridgeId) {
+    	boolean root = rootBridge();
+    	
+    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    		if (designatedPort(portNo)) {
+    			portInfo[portNo].designatedBridge = newBridgeId;
+    		}
+    	}
+    	
+    	bridgeInfo.bridgeId = newBridgeId;
+    	
+    	configurationUpdate();
+    	
+    	portStateSelection();
+    	
+    	if (rootBridge() && !root) {
+    		bridgeInfo.maxAge = bridgeInfo.bridgeMaxAge;
+    		bridgeInfo.helloTime = bridgeInfo.bridgeHelloTime;
+    		bridgeInfo.forwardDelay = bridgeInfo.bridgeForwardDelay;
+    		
+    		topologyChangeDetection();
+    		
+    		stopTCNTimer();
+    		
+    		configBPDUGeneration();
+    		
+    		startHelloTimer();
+    	}
+    }
+    
+    private void setPortPriority(int portNo, int newPortId) {
+    	if (designatedPort(portNo)) {
+    		portInfo[portNo].designatedPort = newPortId;
+    	}
+    	
+    	portInfo[portNo].portId = newPortId;
+    	
+    	if (bridgeInfo.bridgeId == portInfo[portNo].designatedBridge && portInfo[portNo].portId < portInfo[portNo].designatedPort) {
+    		becomeDesignatedPort(portNo);
+    		
+    		portStateSelection();
+    	}
+    }
+    
+    public void setPathCost(int portNo, long pathCost) {
+    	portInfo[portNo].pathCost = pathCost;
+    	
+    	configurationUpdate();
+    	
+    	portStateSelection();
+    }
+    
+    public void enableChangeDetection(int portNo) {
+    	portInfo[portNo].changeDetectionEnabled = true;
+    }
+    
+    public void disableChangeDtection(int portNo) {
+    	portInfo[portNo].changeDetectionEnabled = false;
+    }
+    
+    private void tick() {
+    	if (helloTimerExpired()) {
+    		helloTimerExpiry();
+    	}
+    	
+    	if (tcnTimerExpired()) {
+    		tcnTimerExpiry();
+    	}
+    	
+    	if (topologyChangeTimerExpired()) {
+    		topologyChangeTimerExpiry();
+    	}
+    	
+    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    		if (messageAgeTimerExpired(portNo)) {
+    			messageAgeTimerExpiry(portNo);
+    		}
+    	}
+    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    		if (forwardDelayTimerExpired(portNo)) {
+    			forwardDelayTimerExpiry(portNo);
+    		}
+    		if (holdTimerExpired(portNo)) {
+    			holdTimerExpiry(portNo);
+    		}
+    	}
+    }
+    
+    private void startHelloTimer() {
+    	helloTimer.value = Zero;
+    	helloTimer.active = true;
+    }
+    
+    private void stopHelloTimer() {
+    	helloTimer.active = false;
+    }
+    
+    private boolean helloTimerExpired() {
+    	if (helloTimer.active && (++helloTimer.value >= bridgeInfo.helloTime)) {
+    		helloTimer.active = false;
+    		return true;
+    	}
+    	return false;
+    }
+    
+    private void startTCNTimer() {
+    	tcnTimer.value = Zero;
+    	tcnTimer.active = true;
+    }
+    
+    private void stopTCNTimer() {
+    	tcnTimer.active = false;
+    }
+    
+    private boolean tcnTimerExpired() {
+    	if (tcnTimer.active && (++tcnTimer.value >= bridgeInfo.bridgeHelloTime)) {
+    		tcnTimer.active = false;
+    		return true;
+    	}
+    	return false;
+    }
+    
+    private void startTopologyChangeTimer() {
+    	topologyChangeTimer.value = Zero;
+    	topologyChangeTimer.active = true;
+    }
+    
+    private void stopTopologyChangeTimer() {
+    	topologyChangeTimer.active = false;
+    }
+    
+    private boolean topologyChangeTimerExpired() {
+    	if (topologyChangeTimer.active && (++topologyChangeTimer.value >= bridgeInfo.topologyChangeTime)) {
+    		topologyChangeTimer.active = false;
+    		return true;
+    	}
+    	return false;
+    }
+
+    private void startMessageAgeTimer(int portNo, int messageAge) {
+    	messageAgeTimer[portNo].value = messageAge;
+    	messageAgeTimer[portNo].active = true;
+    }
+    
+    private void stopMessageAgeTimer(int portNo) {
+    	messageAgeTimer[portNo].active = false;
+    }
+    
+    private boolean messageAgeTimerExpired(int portNo) {
+    	if (messageAgeTimer[portNo].active && (++messageAgeTimer[portNo].value >= bridgeInfo.maxAge)) {
+    		messageAgeTimer[portNo].active = false;
+    		return true;
+    	}
+    	return false;
+    }
+    
+    private void startForwardDelayTimer(int portNo) {
+    	forwardDelayTimer[portNo].value = Zero;
+    	forwardDelayTimer[portNo].active = true;
+    }
+    
+    private void stopForwardDelayTimer(int portNo) {
+    	forwardDelayTimer[portNo].active = false;
+    }
+    
+    private boolean forwardDelayTimerExpired(int portNo) {
+    	if (forwardDelayTimer[portNo].active && (++forwardDelayTimer[portNo].value >= bridgeInfo.forwardDelay)) {
+    		forwardDelayTimer[portNo].active = false;
+    		return true;
+    	}
+    	return false;
+    }
+    
+    private void startHoldTimer(int portNo) {
+    	holdTimer[portNo].value = Zero;
+    	holdTimer[portNo].active = true;
+    }
+    
+    private void stopHoldTimer(int portNo) {
+    	holdTimer[portNo].active = false;
+    }
+    
+    private boolean holdTimerExpired(int portNo) {
+    	if (holdTimer[portNo].active && (++holdTimer[portNo].value >= bridgeInfo.holdTime)) {
+    		holdTimer[portNo].active = false;
+    		return true;
+    	}
+    	return false;
+    }   
+
+}     
 
 class BridgeData {
 	int type;
-    byte[] designatedRoot = new byte[8];
+    long designatedRoot;
     long rootPathCost;    /* Path Cost */
     int rootPort;
-    int maxAge;       /* Max Age */
-    int helloTime;    /* Hello Time */
-    int forwardDelay; /* Forward Delay */
-    byte[] bridgeId = new byte[8];
-    int bridgeMaxAge;
-    int bridgeHelloTime;
-    int bridgeForwardDelay;
+    int maxAge = 20;       /* Max Age */
+    int helloTime = 2;    /* Hello Time */
+    int forwardDelay = 15; /* Forward Delay */
+    long bridgeId;
+    int bridgeMaxAge = 20;
+    int bridgeHelloTime = 2;
+    int bridgeForwardDelay = 15;
     boolean topologyChangeDetected;
     boolean topologyChange;
     int topologyChangeTime;
@@ -393,10 +753,10 @@ class BridgeData {
 class PortData {
 	int 			portId;
 	State 	state;
-	int 			pathCost;
-	byte[] 			designatedRoot = new byte[8];
+	long 			pathCost;
+	long 			designatedRoot;
 	long 			designatedCost = 0;
-	byte[] 			designatedBridge = new byte[8];
+	long 			designatedBridge;
 	int 			designatedPort;
 	boolean			topologyChangeAcknowledge;
 	boolean			configPending;

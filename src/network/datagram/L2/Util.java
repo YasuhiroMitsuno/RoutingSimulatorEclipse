@@ -56,4 +56,21 @@ public class Util {
     	if (Arrays.equals(A, B)) return true;
     	return false;
     }
+    
+    public static byte[] longToBytes(long l, int length) {
+    	byte[] bytes = new byte[length];
+    	for (int i=0;i<length;i++) {
+    		bytes[i] = (byte)((l >> i*8) & 0xFF); 
+    	}
+    	return bytes;
+    }
+    
+    public static long bytesToLong(byte[] bytes, int length) {
+    	long l = 0;
+    	if (length > 8) length = 8;
+    	for (int i=0;i<length;i++) {
+    		l += ((long)bytes[i] << 8*i);
+    	}
+    	return l;
+    }
 }
