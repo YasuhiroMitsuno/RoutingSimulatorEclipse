@@ -43,9 +43,18 @@ public abstract class Device {
         selected = false;
     }
     
+    public Device(byte[] bytes) {
+    	this();
+    	MACAddress = bytes;
+    }
+    
     public Device(String addr) {
     	this();
     	MACAddress = Util.addr2Bytes(addr);
+    }
+    
+    public Port[] getPorts() {
+    	return this.ports;
     }
     
     public byte[] getMACAddress() {
@@ -58,6 +67,12 @@ public abstract class Device {
 
     public String getName() {
         return this.name;
+    }
+    
+    public void broadCastFrame(Frame frame) {
+    	for (Port port: ports) {
+    		port.send(frame);
+    	}
     }
 
     /*

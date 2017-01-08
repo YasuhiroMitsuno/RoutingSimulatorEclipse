@@ -16,6 +16,7 @@ public class Port {
     private int number;
     private long inStat;
     private long outStat;
+    private int speed;
     public Boolean slow;
 
     public Port(Device delegate) {
@@ -33,7 +34,16 @@ public class Port {
         inputQueue.start();
         inStat = 0;
         outStat = 0;
+        speed = 10;
         slow = false;
+    }
+    
+    public void setSpeed(int speed) {
+    	this.speed = speed;
+    }
+    
+    public int getSpeed() {
+    	return this.speed;
     }
 
     /* Add the received frame to the input queue */
@@ -61,6 +71,10 @@ public class Port {
 
     /* Take out frame from the output queue and forward it */
     protected void output(Frame frame) {
+    	if (!this.isConnected()) {
+    		System.out.println("Port not connected.");
+    		return;
+    	}
         this.using = true;
         if (slow) {
             try {

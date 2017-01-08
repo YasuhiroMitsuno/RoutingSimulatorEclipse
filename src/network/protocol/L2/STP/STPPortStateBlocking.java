@@ -1,8 +1,8 @@
-package network.protocol.L2;
+package network.protocol.L2.STP;
 
-public class STPBlockingState implements STPState {
+public class STPPortStateBlocking implements STPPortState {
 	final static String stateName = "Blocking";
-	final static STPState nextState = new STPListeningState(); 	
+	final static STPPortState nextState = new STPPortStateListening(); 	
 	
 	@Override
 	public String getStateName() {
@@ -12,12 +12,13 @@ public class STPBlockingState implements STPState {
 	
 	@Override
 	public void actionForUserFrame() {
+		/* Discard recieved frame */
 		return;
 	}
 	
 	@Override
-	public void actionForBPDU() {
-		// TODO Auto-generated method stub
+	public boolean willSendBPDU() {
+		return false;
 	}
 
 	@Override
@@ -26,7 +27,7 @@ public class STPBlockingState implements STPState {
 	}
 
 	@Override
-	public STPState getNextState() {
+	public STPPortState getNextState() {
 		// TODO Auto-generated method stub
 		return nextState;
 	}

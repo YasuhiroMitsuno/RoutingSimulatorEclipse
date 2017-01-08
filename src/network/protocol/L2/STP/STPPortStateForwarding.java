@@ -1,6 +1,6 @@
-package network.protocol.L2;
+package network.protocol.L2.STP;
 
-public class STPForwardingState implements STPState {
+public class STPPortStateForwarding implements STPPortState {
 	final static String stateName = "Forwarding";
 	
 	@Override
@@ -10,9 +10,8 @@ public class STPForwardingState implements STPState {
 	}
 
 	@Override
-	public void actionForBPDU() {
-		// TODO Auto-generated method stub
-		
+	public boolean willSendBPDU() {
+		return true;
 	}
 
 	@Override
@@ -28,7 +27,7 @@ public class STPForwardingState implements STPState {
 	}
 
 	@Override
-	public STPState getNextState() {
+	public STPPortState getNextState() {
 		// TODO Auto-generated method stub
 		return null;
 	}

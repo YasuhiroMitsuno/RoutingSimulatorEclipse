@@ -1,5 +1,7 @@
 package network.datagram.L2;
 
+import java.util.Arrays;
+
 public class Util {
 	/**
 	 * MACアドレス文字列を6バイト配列に変換する。
@@ -31,5 +33,27 @@ public class Util {
             String.format("%02x", (bytes[4] & 0xFF)) + ":" +
             String.format("%02x", (bytes[5] & 0xFF));
         return addr;
+    }
+    
+    public static boolean isLargeAddr(byte[] A, byte[] B, int length) {
+    	for (int i=0;i<length;i++) {
+    		if (A[i] > B[i]) return true;
+    	}
+    	return false;
+    }
+    
+    public static boolean isSmallAddr(byte[] A, byte[] B, int length) {
+    	for (int i=0;i<length;i++) {
+    		if (A[i] < B[i]) return true;
+    	}
+    	return false;
+    }
+    
+    public static boolean isSmallEqualAddr(byte[] A, byte[] B, int length) {
+    	for (int i=0;i<length;i++) {
+    		if (A[i] < B[i]) return true;
+    	}
+    	if (Arrays.equals(A, B)) return true;
+    	return false;
     }
 }

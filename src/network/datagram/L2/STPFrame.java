@@ -39,6 +39,10 @@ public class STPFrame {
         _setBytes(bytes);
     }
 
+    public STPFrame(Frame frame) {
+    	_setBytes(frame.getData());
+    }
+    
     private void _setBytes(byte[] bytes) {
         /* set binary value */
         this.bytes = bytes;
@@ -51,10 +55,20 @@ public class STPFrame {
         for (int i=0;i<8;i++) {
             this.rootId[i] = bytes[i+5];
         }
+        this.rootBridgePriority = (bytes[5] & 0xFF) << 8 | bytes[6] & 0xFF;
+        this.rootBridgeAddress = new byte[6];
+        for (int i=0;i<6;i++) {
+            this.rootBridgeAddress[i] = bytes[i+7];
+        }
         this.pathCost     = (bytes[13] << 24 | bytes[14] << 16 | bytes[15] << 8 | bytes[16]);
         this.bridgeId     = new byte[8];
         for (int i=0;i<8;i++) {
             this.bridgeId[i] = bytes[i+17];
+        }
+        this.bridgePriority = (bytes[17] & 0xFF) << 8 | bytes[18] & 0xFF;
+        this.bridgeAddress = new byte[6];
+        for (int i=0;i<6;i++) {
+            this.bridgeAddress[i] = bytes[i+19];
         }
         this.portId       = (bytes[25] & 0xFF) << 8 | bytes[26] & 0xFF;
         this.messageAge   = (bytes[27] & 0xFF) << 8 | bytes[28] & 0xFF;
@@ -88,6 +102,10 @@ public class STPFrame {
         this.rootId = rootId;
         for (int i=0;i<8;i++) {
             this.bytes[i+5] = this.rootId[i];
+        }
+        this.rootBridgePriority = (bytes[0] & 0xFF) << 8 | bytes[1] & 0xFF;
+        for (int i=0;i<6;i++) {
+            this.rootBridgeAddress[i] = bytes[i+2];
         }
     }
     
@@ -123,6 +141,10 @@ public class STPFrame {
         this.bridgeId = bridgeId;
         for (int i=0;i<8;i++) {
             this.bytes[i+17] = this.bridgeId[i];
+        }
+        this.bridgePriority = (bytes[0] & 0xFF) << 8 | bytes[1] & 0xFF;
+        for (int i=0;i<6;i++) {
+            this.bridgeAddress[i] = bytes[i+2];
         }
     }
 
@@ -172,6 +194,10 @@ public class STPFrame {
         this.bytes[33] = (byte)(this.forwardDelay >> 8);
         this.bytes[34] = (byte)(this.forwardDelay & 0xFF);
     }
+    
+    public byte[] getBytes() {
+    	return this.bytes;
+    }
 
     public int getProtocolId() {
         return this.protocolId;
@@ -192,6 +218,14 @@ public class STPFrame {
     public byte[] getRootId() {
         return this.rootId;
     }
+    
+    public int getRootBridgePriority() {
+    	return this.rootBridgePriority;
+    }
+    
+    public byte[] getRootBridgeAddress() {
+    	return this.rootBridgeAddress;
+    }
 
     public long getPathCost() {
         return this.pathCost;
@@ -199,6 +233,14 @@ public class STPFrame {
 
     public byte[] getBridgeId() {
         return this.bridgeId;
+    }
+    
+    public int getBridgePriority() {
+    	return this.bridgePriority;
+    }
+    
+    public byte[] getBridgeAddress() {
+    	return this.bridgeAddress;
     }
 
     public int getPortId() {
@@ -233,6 +275,7 @@ public class STPFrame {
         str += "\n\tBridge Identifier: " + this.bridgePriority + " / " + Util.bytes2Addr(this.bridgeAddress);
         str += "\n\tPort Identifier: " + String.format("0x%04x", this.portId);
         str += "\n\tMessage Age: " + this.messageAge;
+        str += "\n\tMax Age: " + this.maxAge;
         str += "\n\tHello Time: " + this.helloTime;
         str += "\n\tForward Delay: " + this.forwardDelay;
         return str;

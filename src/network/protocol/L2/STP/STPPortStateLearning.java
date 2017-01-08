@@ -1,8 +1,8 @@
-package network.protocol.L2;
+package network.protocol.L2.STP;
 
-public class STPListeningState implements STPState {
-	final static String stateName = "Listening";
-	final static STPState nextState = new STPLearningState(); 
+public class STPPortStateLearning implements STPPortState {
+	final static String stateName = "Learning";
+	final static STPPortState nextState = new STPPortStateForwarding(); 
 	
 	@Override
 	public void actionForUserFrame() {
@@ -11,9 +11,8 @@ public class STPListeningState implements STPState {
 	}
 
 	@Override
-	public void actionForBPDU() {
-		// TODO Auto-generated method stub
-		
+	public boolean willSendBPDU() {
+		return true;
 	}
 
 	@Override
@@ -29,7 +28,7 @@ public class STPListeningState implements STPState {
 	}
 
 	@Override
-	public STPState getNextState() {
+	public STPPortState getNextState() {
 		// TODO Auto-generated method stub
 		return nextState;
 	}

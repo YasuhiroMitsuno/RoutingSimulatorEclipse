@@ -1,5 +1,8 @@
 import network.datagram.L2.*;
-import network.protocol.L2.STP;
+import network.device.Device;
+import network.protocol.L2.STP.STP;
+import network.device.Bridge;
+import network.device.BridgeFactory;
 
 public class Main {
 	public static void main(String args[]) {
@@ -8,7 +11,9 @@ public class Main {
 		frame.setBridgePriority(32779);
 		frame.setBridgeAddress("00:29:1c:00:12:23");
 		System.out.println(frame.description());
-		STP stp = new STP();
-		stp.start();
+		BridgeFactory hubFactory = new BridgeFactory();
+		Bridge hub = (Bridge)hubFactory.create();
+		Bridge hub2 = (Bridge)hubFactory.create();
+		Device.connect(hub, hub2);
 	}
 }

@@ -49,6 +49,8 @@ public class Frame {
 
     public Frame() {
         this.bytes = new byte[14];
+        this.destination = new byte[6];
+        this.source = new byte[6];
     }
 
     public Frame(byte[] bytes) {

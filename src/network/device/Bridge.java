@@ -9,10 +9,12 @@ import java.awt.Color;
 
 import network.datagram.L2.Frame;
 import network.protocol.L2.Ethernet;
+import network.protocol.L2.STP.STP;
 
-public class Hub extends Device {
-
-    public Hub() {
+public class Bridge extends Device {
+	STP stp;
+	
+	Bridge() {
         super();
         size = 8;
         ports = new Port[size];
@@ -21,7 +23,7 @@ public class Hub extends Device {
         }
     }
 
-    public Hub(double x, double y) {
+    Bridge(double x, double y) {
         super(x, y);
         size = 8;
         ports = new Port[size];
@@ -30,13 +32,27 @@ public class Hub extends Device {
         }
     }
 
+    Bridge(byte[] bytes) {
+    	super(bytes);
+    	stp = new STP(this);
+    	stp.start();
+    }
+    
+    Bridge(String addr) {
+    	super(addr);
+    }
+    
     public void fetch(Frame frame, int number) {
+    	stp.fetchFrame(frame, number);
+ /*
         super.fetch(frame, number);
         SendFrameThread sfThread = new SendFrameThread();
         sfThread.setDelegate(this);
         sfThread.setFrame(frame);
         sfThread.setNumber(number);
         sfThread.start();
+ */
+    	
     }
 
     public void sendFrame(Frame frame, int number) {
@@ -46,13 +62,21 @@ public class Hub extends Device {
             }
         }
     }
+    
+    public void sendFrame(Frame frame) {
+        for (Port port : ports) {
+            if (port.isConnected()) {
+                port.send(frame);
+            }
+        }
+    }
 
     class SendFrameThread extends Thread {
-        private Hub delegate;
+        private Bridge delegate;
         private Frame frame;
         private int number;
 
-        void setDelegate(Hub delegate) {
+        void setDelegate(Bridge delegate) {
             this.delegate = delegate;
         }
 

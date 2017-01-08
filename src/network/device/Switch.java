@@ -5,7 +5,7 @@ import java.io.IOException;
 import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 
-public class Switch extends Hub {
+public class Switch extends Bridge {
     private byte[][] table;
 
     public Switch() {
