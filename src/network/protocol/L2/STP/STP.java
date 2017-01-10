@@ -121,6 +121,18 @@ public class STP extends Thread {
     	return portInfo[portNo + 1].state;
     }
     
+    public boolean isRootPort(int portNo) {
+    	//portInfo[portNo].des
+    	return false;
+    }
+    
+    public boolean isDesignatedPort(int portNo) {
+    	portNo += 1;
+    	return (portInfo[portNo].designatedRoot == bridgeInfo.designatedRoot &&  
+    	portInfo[portNo].designatedBridge == bridgeInfo.bridgeId &&
+    	portInfo[portNo].designatedPort == portInfo[portNo].portId);
+    }
+    
     /* Referenced from IEEE Standard 802.1D 1998 Edition */
     public void transmitConfig(int portNo) {
     	if (holdTimer[portNo].active) {
