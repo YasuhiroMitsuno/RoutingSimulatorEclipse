@@ -1,16 +1,10 @@
 package network.protocol.L2.STP;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-//import java.util.Timer;
 import java.util.TimerTask;
 
 import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 import network.device.Device;
-import network.device.Port;
 import network.protocol.L2.STP.STP.State;
 
 public class STP extends Thread {
@@ -19,17 +13,17 @@ public class STP extends Thread {
 	
     /* From IEEE Standard 802.1D 1998 Edition */	
 	public enum State {
-        Disabled, Listening, Learning, Forwarding, Blocking
+        DISABLED, LISTENING, LEARNING, FORWARDING, BLOCKING
 	}
-	final static int ConfigBPDUType = 0;
-	final static int TCNBPDUType = 128;
-	final static int Zero = 0;	
-	final static int One = 1;
-	final static int NoPort = 0;
-	final static int NoOfPorts = 4;
-	final static int AllPorts = NoOfPorts + 1;
-	final static int DefaultPathCost = 10;
-	final static int MessageAgeIncrement = 1;
+	final static int CONFIG_BPDU_TYPE = 0;
+	final static int TCN_BPDU_TYPE = 128;
+	final static int ZERO = 0;	
+	final static int ONE = 1;
+	final static int NO_PORT = 0;
+	final static int NO_Of_PORTS = 4;
+	final static int ALL_PORTS = NO_Of_PORTS + 1;
+	final static int DEFAULT_PATH_COST = 10;
+	final static int MESSAGE_AGE_INCREMENT = 1;
 	
 	private BridgeData bridgeInfo;
 	private PortData[] portInfo;
@@ -45,32 +39,32 @@ public class STP extends Thread {
 	public STP(Device delegate) {
 		this.delegate = delegate;
     	this.bridgeInfo = new BridgeData();
-    	this.portInfo = new PortData[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.portInfo = new PortData[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.portInfo[portNo] = new PortData();
     		this.portInfo[portNo].portId = portNo;
     	}
-    	this.configBPDU = new ConfigBPDU[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.configBPDU = new ConfigBPDU[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.configBPDU[portNo] = new ConfigBPDU();
     	}
-    	this.tcnBPDU = new TcnBPDU[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.tcnBPDU = new TcnBPDU[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.tcnBPDU[portNo] = new TcnBPDU();
     	}	
     	this.helloTimer = new Timer();
     	this.tcnTimer = new Timer();
     	this.topologyChangeTimer = new Timer();
-    	this.messageAgeTimer = new Timer[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.messageAgeTimer = new Timer[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.messageAgeTimer[portNo] = new Timer();
     	}
-    	this.forwardDelayTimer = new Timer[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.forwardDelayTimer = new Timer[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.forwardDelayTimer[portNo] = new Timer();
     	}
-    	this.holdTimer = new Timer[AllPorts];
-    	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
+    	this.holdTimer = new Timer[ALL_PORTS];
+    	for (int portNo = ZERO; portNo <= NO_Of_PORTS; portNo++) {
     		this.holdTimer[portNo] = new Timer();
     	}
     	
@@ -91,10 +85,10 @@ public class STP extends Thread {
 	public void receivedSTPFrame(int portNo, Frame frame) {
 
 		STPFrame stpFrame = new STPFrame(frame);
-		if (stpFrame.getMessageType() == ConfigBPDUType) {
+		if (stpFrame.getMessageType() == CONFIG_BPDU_TYPE) {
 			ConfigBPDU config = new ConfigBPDU(stpFrame);
 			receivedConfigBPDU(portNo + 1, config);
-		} else if (stpFrame.getMessageType() == TCNBPDUType) {
+		} else if (stpFrame.getMessageType() == TCN_BPDU_TYPE) {
 			TcnBPDU tcn = new TcnBPDU(stpFrame);
 			receivedTCNBPDU(portNo + 1, tcn);
 		}
@@ -108,7 +102,7 @@ public class STP extends Thread {
     
 	public boolean willSendFrame(int portNo) {
 		portNo += 1;
-		return portInfo[portNo].state == State.Forwarding;
+		return portInfo[portNo].state == State.FORWARDING;
 	}
 	
     private class TickTask extends TimerTask {
@@ -132,15 +126,15 @@ public class STP extends Thread {
     	if (holdTimer[portNo].active) {
     		portInfo[portNo].configPending = true;
     	} else {
-    		configBPDU[portNo].type = ConfigBPDUType;
+    		configBPDU[portNo].type = CONFIG_BPDU_TYPE;
     		configBPDU[portNo].rootId = bridgeInfo.designatedRoot;
 	    	configBPDU[portNo].rootPathCost = bridgeInfo.rootPathCost;
 	    	configBPDU[portNo].bridgeId = bridgeInfo.bridgeId;
 	    	configBPDU[portNo].portId = portInfo[portNo].portId;
 	    	if (rootBridge()) {
-	    		configBPDU[portNo].messageAge = Zero;
+	    		configBPDU[portNo].messageAge = ZERO;
 	    	} else {
-	    		configBPDU[portNo].messageAge = messageAgeTimer[bridgeInfo.rootPort].value + MessageAgeIncrement;
+	    		configBPDU[portNo].messageAge = messageAgeTimer[bridgeInfo.rootPort].value + MESSAGE_AGE_INCREMENT;
 	    	}
 	    	configBPDU[portNo].maxAge = bridgeInfo.maxAge;
 	    	configBPDU[portNo].helloTime = bridgeInfo.helloTime;
@@ -193,8 +187,8 @@ public class STP extends Thread {
     }
     
     private void configBPDUGeneration() {
-    	for (int portNo = One; portNo < NoOfPorts; portNo++) {
-    		if (designatedPort(portNo) && portInfo[portNo].state != State.Disabled) {
+    	for (int portNo = ONE; portNo < NO_Of_PORTS; portNo++) {
+    		if (designatedPort(portNo) && portInfo[portNo].state != State.DISABLED) {
     			transmitConfig(portNo);
     		}
     	}
@@ -211,7 +205,7 @@ public class STP extends Thread {
     
     private void transmitTCN() {
     	int portNo = bridgeInfo.rootPort;
-    	tcnBPDU[portNo].type = TCNBPDUType;
+    	tcnBPDU[portNo].type = TCN_BPDU_TYPE;
     	
     	sendTCNBPDU(portNo, tcnBPDU[bridgeInfo.rootPort]);
     }
@@ -231,12 +225,12 @@ public class STP extends Thread {
     }
     
     private void rootSelection() {
-    	int rootPort = NoPort;
+    	int rootPort = NO_PORT;
     	
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
-    		if ((!designatedPort(portNo) && (portInfo[portNo].state != State.Disabled) && 
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
+    		if ((!designatedPort(portNo) && (portInfo[portNo].state != State.DISABLED) && 
     				portInfo[portNo].designatedRoot < bridgeInfo.bridgeId ) &&
-    				(rootPort == NoPort || portInfo[portNo].designatedRoot < portInfo[rootPort].designatedRoot) ||
+    				(rootPort == NO_PORT || portInfo[portNo].designatedRoot < portInfo[rootPort].designatedRoot) ||
     				( (portInfo[portNo].designatedRoot == portInfo[rootPort].designatedRoot) && 
     				(((portInfo[portNo].designatedCost + portInfo[portNo].pathCost) < (portInfo[rootPort].designatedCost + portInfo[rootPort].pathCost)) ||
     						(((portInfo[portNo].designatedCost + portInfo[portNo].pathCost) == (portInfo[rootPort].designatedCost + portInfo[rootPort].pathCost))
@@ -255,9 +249,9 @@ public class STP extends Thread {
     	
     	bridgeInfo.rootPort = rootPort;
     	
-    	if (rootPort == NoPort) {
+    	if (rootPort == NO_PORT) {
     		bridgeInfo.designatedRoot = bridgeInfo.bridgeId;
-    		bridgeInfo.rootPathCost = Zero;
+    		bridgeInfo.rootPathCost = ZERO;
     	} else {
     		bridgeInfo.designatedRoot = portInfo[rootPort].designatedRoot;
     		bridgeInfo.rootPathCost = (portInfo[rootPort].designatedCost + portInfo[rootPort].pathCost);
@@ -265,7 +259,7 @@ public class STP extends Thread {
     }
     
     private void designatedPortSelection() {
-    	for (int portNo = One; portNo < NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo < NO_Of_PORTS; portNo++) {
     		if (designatedPort(portNo) || portInfo[portNo].designatedRoot != bridgeInfo.designatedRoot ||
     				bridgeInfo.rootPathCost < portInfo[portNo].designatedCost ||
     				((bridgeInfo.rootPathCost == portInfo[portNo].designatedCost) && (
@@ -285,7 +279,7 @@ public class STP extends Thread {
     }
     
     private void portStateSelection() {
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		if (portNo == bridgeInfo.rootPort) {
     			portInfo[portNo].configPending = false;
     			portInfo[portNo].topologyChangeAcknowledge = false;
@@ -305,21 +299,21 @@ public class STP extends Thread {
     }
     
     private void makeForwarding(int portNo) {
-    	if (portInfo[portNo].state == State.Blocking) {
-    		setPortState(portNo, State.Listening);
+    	if (portInfo[portNo].state == State.BLOCKING) {
+    		setPortState(portNo, State.LISTENING);
     		
     		startForwardDelayTimer(portNo);
     	}
     }
     
     private void makeBlocking(int portNo) {
-    	if (portInfo[portNo].state != State.Disabled && portInfo[portNo].state != State.Blocking) {
-    		if (portInfo[portNo].state == State.Forwarding || portInfo[portNo].state == State.Learning) {
+    	if (portInfo[portNo].state != State.DISABLED && portInfo[portNo].state != State.BLOCKING) {
+    		if (portInfo[portNo].state == State.FORWARDING || portInfo[portNo].state == State.LEARNING) {
     			if (portInfo[portNo].changeDetectionEnabled == true) {
     				topologyChangeDetection();
     			}
     		}
-    		setPortState(portNo, State.Blocking);
+    		setPortState(portNo, State.BLOCKING);
 
     		stopForwardDelayTimer(portNo);
     	}
@@ -357,7 +351,7 @@ public class STP extends Thread {
     private void receivedConfigBPDU(int portNo, ConfigBPDU config) {
     	boolean root = rootBridge();
     	
-    	if (portInfo[portNo].state != State.Disabled) {
+    	if (portInfo[portNo].state != State.DISABLED) {
     		if (supersedesPortInfo(portNo, config)) {
     			recordConfigurationInformation(portNo, config);
     			
@@ -393,7 +387,7 @@ public class STP extends Thread {
     }
     
     private void receivedTCNBPDU(int portNo, TcnBPDU tcn) {
-    	if (portInfo[portNo].state != State.Disabled) {
+    	if (portInfo[portNo].state != State.DISABLED) {
     		if (designatedPort(portNo)) {
     			topologyChangeDetection();
     			
@@ -433,12 +427,12 @@ public class STP extends Thread {
     }
     
     private void forwardDelayTimerExpiry(int portNo) {
-    	if (portInfo[portNo].state == State.Listening) {
-    		setPortState(portNo, State.Learning);
+    	if (portInfo[portNo].state == State.LISTENING) {
+    		setPortState(portNo, State.LEARNING);
     		
     		startForwardDelayTimer(portNo);
-    	} else if (portInfo[portNo].state == State.Learning) {
-    		setPortState(portNo, State.Forwarding);
+    	} else if (portInfo[portNo].state == State.LEARNING) {
+    		setPortState(portNo, State.FORWARDING);
     		
     		if (designatedForSomePort()) {
     			if (portInfo[portNo].changeDetectionEnabled == true) {
@@ -449,7 +443,7 @@ public class STP extends Thread {
     }
     
     private boolean designatedForSomePort() {
-    	for (int portNo = One; portNo < NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo < NO_Of_PORTS; portNo++) {
     		if (portInfo[portNo].designatedBridge == bridgeInfo.bridgeId) {
     			return true;
     		}
@@ -476,8 +470,8 @@ public class STP extends Thread {
     
     private void initialisation() { 
     	bridgeInfo.designatedRoot = bridgeInfo.bridgeId;
-    	bridgeInfo.rootPathCost = Zero;
-    	bridgeInfo.rootPort = NoPort;
+    	bridgeInfo.rootPathCost = ZERO;
+    	bridgeInfo.rootPort = NO_PORT;
     	
     	bridgeInfo.maxAge = bridgeInfo.bridgeMaxAge;
     	bridgeInfo.helloTime = bridgeInfo.bridgeHelloTime;
@@ -488,9 +482,9 @@ public class STP extends Thread {
     	stopTCNTimer();
     	stopTopologyChangeTimer();
     	
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		initializePort(portNo);
-    		setPortState(portNo, State.Disabled);
+    		setPortState(portNo, State.DISABLED);
     	}
     	portStateSelection();
     	configBPDUGeneration();
@@ -500,7 +494,7 @@ public class STP extends Thread {
     private void initializePort(int portNo) {  	
     	becomeDesignatedPort(portNo);
     	
-    	setPortState(portNo, State.Blocking);
+    	setPortState(portNo, State.BLOCKING);
     	
     	portInfo[portNo].topologyChangeAcknowledge = false;
     	
@@ -526,7 +520,7 @@ public class STP extends Thread {
     	
     	becomeDesignatedPort(portNo);
     	
-    	setPortState(portNo, State.Disabled);
+    	setPortState(portNo, State.DISABLED);
     	
     	portInfo[portNo].topologyChangeAcknowledge = false;
     	
@@ -558,7 +552,7 @@ public class STP extends Thread {
     private void setBridgePriority(long newBridgeId) {
     	boolean root = rootBridge();
     	
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		if (designatedPort(portNo)) {
     			portInfo[portNo].designatedBridge = newBridgeId;
     		}
@@ -628,12 +622,12 @@ public class STP extends Thread {
     		topologyChangeTimerExpiry();
     	}
     	
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		if (messageAgeTimerExpired(portNo)) {
     			messageAgeTimerExpiry(portNo);
     		}
     	}
-    	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		if (forwardDelayTimerExpired(portNo)) {
     			forwardDelayTimerExpiry(portNo);
     		}
@@ -644,7 +638,7 @@ public class STP extends Thread {
     }
     
     private void startHelloTimer() {
-    	helloTimer.value = Zero;
+    	helloTimer.value = ZERO;
     	helloTimer.active = true;
     }
     
@@ -661,7 +655,7 @@ public class STP extends Thread {
     }
     
     private void startTCNTimer() {
-    	tcnTimer.value = Zero;
+    	tcnTimer.value = ZERO;
     	tcnTimer.active = true;
     }
     
@@ -678,7 +672,7 @@ public class STP extends Thread {
     }
     
     private void startTopologyChangeTimer() {
-    	topologyChangeTimer.value = Zero;
+    	topologyChangeTimer.value = ZERO;
     	topologyChangeTimer.active = true;
     }
     
@@ -712,7 +706,7 @@ public class STP extends Thread {
     }
     
     private void startForwardDelayTimer(int portNo) {
-    	forwardDelayTimer[portNo].value = Zero;
+    	forwardDelayTimer[portNo].value = ZERO;
     	forwardDelayTimer[portNo].active = true;
     }
     
@@ -729,7 +723,7 @@ public class STP extends Thread {
     }
     
     private void startHoldTimer(int portNo) {
-    	holdTimer[portNo].value = Zero;
+    	holdTimer[portNo].value = ZERO;
     	holdTimer[portNo].active = true;
     }
     
@@ -770,7 +764,7 @@ class PortData {
 	State 	state;
 	long 			pathCost;
 	long 			designatedRoot;
-	long 			designatedCost = 0;
+	long 			designatedCost;
 	long 			designatedBridge;
 	int 			designatedPort;
 	boolean			topologyChangeAcknowledge;
