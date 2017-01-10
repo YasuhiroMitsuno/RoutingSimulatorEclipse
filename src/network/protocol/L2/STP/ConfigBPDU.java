@@ -3,13 +3,13 @@ package network.protocol.L2.STP;
 import network.datagram.L2.Util;
 
 class ConfigBPDU {
-	final static int TC = 0x01;
-	final static int P = 0x02;
-	final static int PR = 0x0C;
-	final static int L = 0x10;
-	final static int F = 0x20;
-	final static int A = 0x40;
-	final static int TCA = 0x80;
+	final static int TOPOLOGY_CHANGE = 0x01;
+	final static int PROPOSAL = 0x02;
+	final static int PORT_ROLE = 0x0C;
+	final static int LEARNING = 0x10;
+	final static int FORWARDING = 0x20;
+	final static int AGREEMENT = 0x40;
+	final static int TOPOLOGY_CHANGE_ACK = 0x80;
 	int type;
     long rootId;    /* Root Identifier */
     long rootPathCost;    /* Path Cost */
@@ -37,7 +37,7 @@ class ConfigBPDU {
     	this.helloTime = stpFrame.getHelloTime();
     	this.forwardDelay = stpFrame.getForwardDelay();
     	int flags = stpFrame.getFlags();
-    	this.topologyChangeAcknowledgement = (flags & TCA) == 1;
-    	this.topologyChange = (flags & TC) == 1;
+    	this.topologyChangeAcknowledgement = (flags & TOPOLOGY_CHANGE_ACK) == 1;
+    	this.topologyChange = (flags & TOPOLOGY_CHANGE) == 1;
     }
 }

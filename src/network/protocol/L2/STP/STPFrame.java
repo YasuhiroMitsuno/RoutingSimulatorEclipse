@@ -4,8 +4,8 @@ import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 
 public class STPFrame {
-	final static int ConfigBPDUType = 0;
-	final static int TCNBPDUType = 128;
+	final static int CONFIG_BPDU_TYPE = 0;
+	final static int TCN_BPDU_TYPE = 128;
     private byte[] bytes;      /* Binary Data */
     private int protocolId;   /* Protocol ID */
     private int version;       /* Version */
@@ -42,7 +42,7 @@ public class STPFrame {
     
     public STPFrame(ConfigBPDU config) {
     	this();
-    	setMessageType(ConfigBPDUType);
+    	setMessageType(CONFIG_BPDU_TYPE);
     	setRootId(Util.longToBytes(config.rootId, 8));
     	setPathCost(config.rootPathCost);
         setBridgeId(Util.longToBytes(config.bridgeId, 8));
@@ -57,7 +57,7 @@ public class STPFrame {
     
     public STPFrame(TcnBPDU tcn) {
     	this();
-    	setMessageType(TCNBPDUType);
+    	setMessageType(TCN_BPDU_TYPE);
     }
 
     public STPFrame(byte[] bytes) {
