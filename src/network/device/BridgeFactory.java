@@ -23,8 +23,24 @@ public class BridgeFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		Bridge hub = new Bridge(address);
-		return hub;
+		Bridge bridge = new Bridge(address);
+		return bridge;
 	}
 
+	@Override
+	public Device createDevice(double x, double y) {
+		byte[] address = new byte[6];
+		address[0] = vendorCode[0];
+		address[1] = vendorCode[1];
+		address[2] = vendorCode[2];
+		address[3] = nextProductCode[0];
+		address[4] = nextProductCode[1];
+		address[5] = nextProductCode[2];
+
+		nextProductCode[2] += 1;
+		
+		Bridge bridge = new Bridge(address, x, y);
+		return bridge;
+	}
+	
 }

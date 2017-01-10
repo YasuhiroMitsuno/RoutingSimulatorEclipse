@@ -130,9 +130,10 @@ public class Port {
 
         g.fillOval(-10/2, -10/2, 10, 10);
 
-        if (!isConnected()) return;
+//        if (!isConnected()) return;
 
         g.setColor(Color.BLACK);
+        g.drawString("↓" + delegate.stp.getState(getNumber()), 0, 0);        
         g.drawString("↓" + getByteString(inStat), 15, -7);
         g.drawString("↑" + getByteString(outStat), 85, -7);
 

@@ -4,6 +4,8 @@ import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 
 public class STPFrame {
+	final static int ConfigBPDUType = 0;
+	final static int TCNBPDUType = 128;
     private byte[] bytes;      /* Binary Data */
     private int protocolId;   /* Protocol ID */
     private int version;       /* Version */
@@ -38,18 +40,24 @@ public class STPFrame {
         setForwardDelay(15);
     }
     
-    public STPFrame(BPDU bpdu) {
+    public STPFrame(ConfigBPDU config) {
     	this();
-    	setRootId(Util.longToBytes(bpdu.rootId, 8));
-    	setPathCost(bpdu.rootPathCost);
-        setBridgeId(Util.longToBytes(bpdu.bridgeId, 8));
-        setPortId(bpdu.portId);
-        setMessageAge(bpdu.messageAge);
-        setMaxAge(bpdu.maxAge);
-        setHelloTime(bpdu.helloTime);
-        setForwardDelay(bpdu.forwardDelay);
-        setFlags(bpdu.topologyChangeAcknowledgement? this.flags | 0x80: this.flags ^ 0x80); 
-        setFlags(bpdu.topologyChange? this.flags | 0x01: this.flags ^ 0x01); 
+    	setMessageType(ConfigBPDUType);
+    	setRootId(Util.longToBytes(config.rootId, 8));
+    	setPathCost(config.rootPathCost);
+        setBridgeId(Util.longToBytes(config.bridgeId, 8));
+        setPortId(config.portId);
+        setMessageAge(config.messageAge);
+        setMaxAge(config.maxAge);
+        setHelloTime(config.helloTime);
+        setForwardDelay(config.forwardDelay);
+        setFlags(config.topologyChangeAcknowledgement? this.flags | 0x80: this.flags ^ 0x80); 
+        setFlags(config.topologyChange? this.flags | 0x01: this.flags ^ 0x01);
+    }
+    
+    public STPFrame(TcnBPDU tcn) {
+    	this();
+    	setMessageType(TCNBPDUType);
     }
 
     public STPFrame(byte[] bytes) {

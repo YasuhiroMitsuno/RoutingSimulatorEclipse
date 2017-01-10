@@ -26,15 +26,15 @@ public class STP extends Thread {
 	final static int Zero = 0;	
 	final static int One = 1;
 	final static int NoPort = 0;
-	final static int NoOfPorts = 2;
+	final static int NoOfPorts = 4;
 	final static int AllPorts = NoOfPorts + 1;
 	final static int DefaultPathCost = 10;
 	final static int MessageAgeIncrement = 1;
 	
 	private BridgeData bridgeInfo;
 	private PortData[] portInfo;
-	private BPDU[] configBPDU;
-	private BPDU[] tcnBPDU;
+	private ConfigBPDU[] configBPDU;
+	private TcnBPDU[] tcnBPDU;
 	private Timer helloTimer;
 	private Timer tcnTimer;
 	private Timer topologyChangeTimer;
@@ -50,13 +50,13 @@ public class STP extends Thread {
     		this.portInfo[portNo] = new PortData();
     		this.portInfo[portNo].portId = portNo;
     	}
-    	this.configBPDU = new BPDU[AllPorts];
+    	this.configBPDU = new ConfigBPDU[AllPorts];
     	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
-    		this.configBPDU[portNo] = new BPDU();
+    		this.configBPDU[portNo] = new ConfigBPDU();
     	}
-    	this.tcnBPDU = new BPDU[AllPorts];
+    	this.tcnBPDU = new TcnBPDU[AllPorts];
     	for (int portNo = Zero; portNo <= NoOfPorts; portNo++) {
-    		this.tcnBPDU[portNo] = new BPDU();
+    		this.tcnBPDU[portNo] = new TcnBPDU();
     	}	
     	this.helloTimer = new Timer();
     	this.tcnTimer = new Timer();
@@ -81,29 +81,36 @@ public class STP extends Thread {
 		timer.schedule(new TickTask(this), 1000, 1000);
 	}
 	
-	private void sendConfigBPDU(int portNo, BPDU config) {
-		
+	private void sendConfigBPDU(int portNo, ConfigBPDU config) {
 		STPFrame stpFrame = new STPFrame(config);
 		Frame frame = new Frame();
 		frame.setData(stpFrame.getBytes());
-		delegate.sendFrame(portNo, frame);
+		delegate.sendFrame(portNo-1, frame);
 	}
 	
 	public void receivedSTPFrame(int portNo, Frame frame) {
 
 		STPFrame stpFrame = new STPFrame(frame);
-		BPDU bpdu = new BPDU(stpFrame);
-		if (bpdu.type == ConfigBPDUType) {
-			receivedConfigBPDU(portNo, bpdu);
-		} else if (bpdu.type == TCNBPDUType) {
-			receivedTCNBPDU(portNo, bpdu);
+		if (stpFrame.getMessageType() == ConfigBPDUType) {
+			ConfigBPDU config = new ConfigBPDU(stpFrame);
+			receivedConfigBPDU(portNo + 1, config);
+		} else if (stpFrame.getMessageType() == TCNBPDUType) {
+			TcnBPDU tcn = new TcnBPDU(stpFrame);
+			receivedTCNBPDU(portNo + 1, tcn);
 		}
+		
+
 	}
 	
 	private void setBridgeAddress(byte[] address) {
 		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | Util.bytesToLong(address, 6) << 16;
 	}
     
+	public boolean willSendFrame(int portNo) {
+		portNo += 1;
+		return portInfo[portNo].state == State.Forwarding;
+	}
+	
     private class TickTask extends TimerTask {
     	private STP delegate;
     	
@@ -115,7 +122,11 @@ public class STP extends Thread {
 			delegate.tick();
 		}
 	}
-		
+	
+    public State getState(int portNo) {
+    	return portInfo[portNo + 1].state;
+    }
+    
     /* Referenced from IEEE Standard 802.1D 1998 Edition */
     public void transmitConfig(int portNo) {
     	if (holdTimer[portNo].active) {
@@ -127,14 +138,14 @@ public class STP extends Thread {
 	    	configBPDU[portNo].bridgeId = bridgeInfo.bridgeId;
 	    	configBPDU[portNo].portId = portInfo[portNo].portId;
 	    	if (rootBridge()) {
-	    		configBPDU[portNo].messageAge = 0;
+	    		configBPDU[portNo].messageAge = Zero;
 	    	} else {
 	    		configBPDU[portNo].messageAge = messageAgeTimer[bridgeInfo.rootPort].value + MessageAgeIncrement;
 	    	}
 	    	configBPDU[portNo].maxAge = bridgeInfo.maxAge;
 	    	configBPDU[portNo].helloTime = bridgeInfo.helloTime;
 	    	configBPDU[portNo].forwardDelay = bridgeInfo.forwardDelay;
-	    	configBPDU[portNo].topologyChangeAcknowledgement = this.portInfo[portNo].topologyChangeAcknowledge;
+	    	configBPDU[portNo].topologyChangeAcknowledgement = portInfo[portNo].topologyChangeAcknowledge;
 	    	configBPDU[portNo].topologyChange = bridgeInfo.topologyChange;
 	    	
 	    	if (configBPDU[portNo].messageAge < bridgeInfo.maxAge) {
@@ -146,18 +157,18 @@ public class STP extends Thread {
     	}
     }
     
-    private boolean rootBridge() {
+    public boolean rootBridge() {
     	return bridgeInfo.designatedRoot == bridgeInfo.bridgeId;
     }
     
-    boolean supersedesPortInfo(int portNo, BPDU config) {
-    	return (config.rootId < portInfo[portNo].designatedRoot ||
-    			(config.rootId == portInfo[portNo].designatedRoot &&
-    			(config.rootPathCost < portInfo[portNo].designatedCost ||
-    			(config.rootPathCost == portInfo[portNo].designatedCost &&
-    			(config.bridgeId < portInfo[portNo].designatedBridge ||
-    				(config.bridgeId == portInfo[portNo].designatedBridge &&
-    				(config.bridgeId != bridgeInfo.bridgeId || config.portId <= portInfo[portNo].designatedPort)    					 )
+    boolean supersedesPortInfo(int portNo, ConfigBPDU config) {
+    	return ((config.rootId < portInfo[portNo].designatedRoot) ||
+    			((config.rootId == portInfo[portNo].designatedRoot) &&
+    			((config.rootPathCost < portInfo[portNo].designatedCost) ||
+    			((config.rootPathCost == portInfo[portNo].designatedCost) &&
+    			((config.bridgeId < portInfo[portNo].designatedBridge) ||
+    				((config.bridgeId == portInfo[portNo].designatedBridge) &&
+    				((config.bridgeId != bridgeInfo.bridgeId) || (config.portId <= portInfo[portNo].designatedPort))    					 )
     			)
     			)
     			)
@@ -165,8 +176,8 @@ public class STP extends Thread {
     	);
     }
     
-    public void recordConfigurationInformation(int portNo, BPDU config) {
-       	portInfo[portNo].designatedBridge = config.rootId;
+    public void recordConfigurationInformation(int portNo, ConfigBPDU config) {
+       	portInfo[portNo].designatedRoot = config.rootId;
     	portInfo[portNo].designatedCost = config.rootPathCost;
     	portInfo[portNo].designatedBridge = config.bridgeId;    	
     	portInfo[portNo].designatedPort = config.portId;
@@ -174,14 +185,14 @@ public class STP extends Thread {
     	startMessageAgeTimer(portNo, config.messageAge);
     }
     
-    public void recordConfigurationTimeoutValues(BPDU config) {
+    public void recordConfigurationTimeoutValues(ConfigBPDU config) {
     	bridgeInfo.maxAge = config.maxAge;
     	bridgeInfo.helloTime = config.helloTime;
     	bridgeInfo.forwardDelay = config.forwardDelay;
     	bridgeInfo.topologyChange = config.topologyChange;
     }
     
-    public void configBPDUGeneration() {
+    private void configBPDUGeneration() {
     	for (int portNo = One; portNo < NoOfPorts; portNo++) {
     		if (designatedPort(portNo) && portInfo[portNo].state != State.Disabled) {
     			transmitConfig(portNo);
@@ -194,20 +205,23 @@ public class STP extends Thread {
     			portInfo[portNo].designatedPort == portInfo[portNo].portId;
     }
     
-    public void reply(int portNo) {
+    private void reply(int portNo) {
     	transmitConfig(portNo);
     }
     
-    public void transmitTCN() {
+    private void transmitTCN() {
     	int portNo = bridgeInfo.rootPort;
     	tcnBPDU[portNo].type = TCNBPDUType;
     	
     	sendTCNBPDU(portNo, tcnBPDU[bridgeInfo.rootPort]);
     }
     
-    private void sendTCNBPDU(int portNo, BPDU bpdu) {
-    	
-    }
+    private void sendTCNBPDU(int portNo, TcnBPDU bpdu) {
+		STPFrame stpFrame = new STPFrame(bpdu);
+		Frame frame = new Frame();
+		frame.setData(stpFrame.getBytes());
+		delegate.sendFrame(portNo-1, frame);
+	} 
     
     public void configurationUpdate() {
     	rootSelection();
@@ -340,7 +354,7 @@ public class STP extends Thread {
     	transmitConfig(portNo);
     }
     
-    private void receivedConfigBPDU(int portNo, BPDU config) {
+    private void receivedConfigBPDU(int portNo, ConfigBPDU config) {
     	boolean root = rootBridge();
     	
     	if (portInfo[portNo].state != State.Disabled) {
@@ -378,7 +392,7 @@ public class STP extends Thread {
     	}
     }
     
-    private void receivedTCNBPDU(int portNo, BPDU tcn) {
+    private void receivedTCNBPDU(int portNo, TcnBPDU tcn) {
     	if (portInfo[portNo].state != State.Disabled) {
     		if (designatedPort(portNo)) {
     			topologyChangeDetection();
@@ -475,14 +489,15 @@ public class STP extends Thread {
     	stopTopologyChangeTimer();
     	
     	for (int portNo = One; portNo <= NoOfPorts; portNo++) {
-    	      initializePort(portNo);
-    	   }
-    	   portStateSelection();
-    	   configBPDUGeneration();
-    	   startHelloTimer();
+    		initializePort(portNo);
+    		setPortState(portNo, State.Disabled);
+    	}
+    	portStateSelection();
+    	configBPDUGeneration();
+    	startHelloTimer();
     }
     
-    private void initializePort(int portNo) {
+    private void initializePort(int portNo) {  	
     	becomeDesignatedPort(portNo);
     	
     	setPortState(portNo, State.Blocking);

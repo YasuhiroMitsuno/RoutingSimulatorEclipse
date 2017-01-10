@@ -2,7 +2,7 @@ package network.protocol.L2.STP;
 
 import network.datagram.L2.Util;
 
-class BPDU {
+class ConfigBPDU {
 	final static int TC = 0x01;
 	final static int P = 0x02;
 	final static int PR = 0x0C;
@@ -22,11 +22,11 @@ class BPDU {
     boolean topologyChangeAcknowledgement;
     boolean topologyChange;
     
-    BPDU() {
+    ConfigBPDU() {
     	
     }
     
-    BPDU(STPFrame stpFrame) {
+    ConfigBPDU(STPFrame stpFrame) {
     	this.type = stpFrame.getMessageType();
     	this.rootId = Util.bytesToLong(stpFrame.getRootId(), 8);
     	this.rootPathCost = stpFrame.getPathCost();

@@ -1,7 +1,7 @@
 package network.device;
 
 abstract class ActivationQueue<T>  extends Thread {
-    protected static final int MAX_SIZE = 100;
+    protected static final int MAX_SIZE = 10000;
     protected final Object[] queue;
     protected int tail;
     protected int head;

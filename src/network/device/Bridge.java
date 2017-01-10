@@ -12,7 +12,6 @@ import network.protocol.L2.Ethernet;
 import network.protocol.L2.STP.STP;
 
 public class Bridge extends Device {
-	STP stp;
 	
 	Bridge() {
         super();
@@ -38,26 +37,32 @@ public class Bridge extends Device {
     	stp.start();
     }
     
+    Bridge(byte[] bytes, double x, double y) {
+    	super(bytes, x, y);
+    	stp = new STP(this);
+    	stp.start();
+    }
+    
     Bridge(String addr) {
     	super(addr);
     }
     
     public void fetch(Frame frame, int number) {
-    	stp.receivedSTPFrame(number + 1, frame);
- /*
-        super.fetch(frame, number);
-        SendFrameThread sfThread = new SendFrameThread();
-        sfThread.setDelegate(this);
-        sfThread.setFrame(frame);
-        sfThread.setNumber(number);
-        sfThread.start();
- */
-    	
-    }
+    	stp.receivedSTPFrame(number, frame);
+
+    	if (stp.willSendFrame(number)) {
+	    	super.fetch(frame, number);
+	        SendFrameThread sfThread = new SendFrameThread();
+	        sfThread.setDelegate(this);
+	        sfThread.setFrame(frame);
+	        sfThread.setNumber(number);
+	        sfThread.start();
+    	}
+     }
 
     public void sendFrame(Frame frame, int number) {
         for (Port port : ports) {
-            if (port.isConnected() && port.getNumber() != number) {
+            if (port.isConnected() && port.getNumber() != number && stp.willSendFrame(port.getNumber())) {
                 port.send(frame);
             }
         }

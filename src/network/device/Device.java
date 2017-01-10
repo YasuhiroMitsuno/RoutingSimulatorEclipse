@@ -12,22 +12,28 @@ import java.awt.Color;
 import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 import network.protocol.L2.Ethernet;
+import network.protocol.L2.STP.STP;
 
 public abstract class Device {
     protected Port[] ports;
-    protected int size = 2;
+    protected int size = 4;
     protected String name;
     public Point2D position;
     public Boolean selected;
     protected Device device;
-    protected int MTU;
+    public int MTU;
     protected byte[] MACAddress;
+	STP stp;    
 
     public static void connect(Device d1, Device d2) {
-        Port p1 = d1.getDisconnectedPort();
-        Port p2 = d2.getDisconnectedPort();
-        p1.connect(p2);
-        p2.connect(p1);
+        int p1 = d1.getDisconnectedPort();
+        int p2 = d2.getDisconnectedPort();
+        d1.getPort(p1).connect(d2.getPort(p2));
+        d2.getPort(p2).connect(d1.getPort(p1));
+        d1.stp.enablePort(p1 + 1);
+        d2.stp.enablePort(p2 + 1);
+        //d1.stp.enablePort(p1);
+        //d2.stp.enablePort(p2);        
     }
     
     public Device(double x, double y) {
@@ -38,7 +44,7 @@ public abstract class Device {
         MTU = 1500;
         ports = new Port[size];
         for (int i=0;i<size;i++) {
-            ports[i] = new Port(this);
+            ports[i] = new Port(this, i);
         }
         selected = false;
     }
@@ -46,6 +52,12 @@ public abstract class Device {
     public Device(byte[] bytes) {
     	this();
     	MACAddress = bytes;
+    }
+    
+    public Device(byte[] bytes, double x, double y) {
+    	this();
+    	MACAddress = bytes;
+        position = new Point2D.Double(x, y);
     }
     
     public Device(String addr) {
@@ -91,20 +103,22 @@ public abstract class Device {
             mfThread.start();
             return;
         }
-        ports[portNo-1].send(frame);
+        //if ((stp != null && stp.willSendFrame(portNo))) {
+            ports[portNo].send(frame);        	
+//        }
     }
 
     public Port getPort(int index) {
 	return ports[index];
     }
 
-    public Port getDisconnectedPort() {
-        for (Port port : ports) {
-            if (!port.isConnected()) {
-                return port;
+    public int getDisconnectedPort() {
+    	for (int portNo = 0; portNo < ports.length; portNo++) {
+            if (!ports[portNo].isConnected()) {
+                return portNo;
             }
         }
-        return null;
+        return 0;
     }
 
     public int getNumber() {
@@ -142,7 +156,7 @@ public abstract class Device {
         public void run() {
             //            System.out.println("MAKE FRAGMENT");
             for (Frame f : Ethernet.makeFragment(frame, delegate.MTU)) {
-                delegate.sendFrame(f);
+                delegate.sendFrame(0, f);
             }
         }
     }
@@ -159,8 +173,9 @@ public abstract class Device {
 
         aL.translate((int)(position.getX() *scale), -(int)(position.getY()*scale));
         g2.setTransform(aL);
-
-     
+        if (stp.rootBridge()) {
+        	g.drawString("root", 0, -10);
+        }
         for (Port port : ports) {
             port.draw(g2);
             aL.translate(0, 15);

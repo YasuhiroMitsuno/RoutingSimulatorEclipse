@@ -6,5 +6,11 @@ public abstract class DeviceFactory {
 		return device;
 	}
 	
+	public final Device create(double x, double y) {
+		Device device = createDevice(x, y);
+		return device;
+	}
+	
 	protected abstract Device createDevice();
+	protected abstract Device createDevice(double x, double y);
 }
