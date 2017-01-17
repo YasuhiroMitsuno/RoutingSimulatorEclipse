@@ -2,6 +2,7 @@ package network.protocol.L3;
 
 import network.datagram.L3.Packet;
 import network.datagram.L4.TCPSegment;
+import network.protocol.L2.STP.STP.State;
 import network.protocol.L4.TCP;
 
 public class IPv4 {
@@ -11,6 +12,10 @@ public class IPv4 {
 
         private Protocol(final int num) {
             this.num = num;
+        }
+        
+        public int getNum() {
+        	return this.num;
         }
 
         public static String getName(int num) {
@@ -138,5 +143,37 @@ public class IPv4 {
         }
         return packets;
     }
+    
+	final static int ZERO = 0;	
+	final static int ONE = 1;
+	final static int NO_PORT = 0;
+	final static int NO_Of_PORTS = 4;
+	final static int ALL_PORTS = NO_Of_PORTS;
+	private PortData[] portInfo;
+	
+	IPv4() {
+		this.portInfo = new PortData[ALL_PORTS];
+	}
+	
+	public void receivedPacket(int portNo, Packet packet) {
+		if (portInfo[portNo].addr == packet.getDestination()) {
+			System.out.println("GET");
+		}
+	}
+	
+	public static boolean isSameNetwork(byte[] addr1, byte[] addr2, byte[] mask) {
+		boolean same = true;
+		for(int i=0;i<4;i++) {
+			if ((addr1[i] & mask[i]) != (addr2[i] & mask[i])) {
+				same = false;
+			}
+		}
+		return same;
+	}
 }
 
+class PortData {
+	int 	portId;
+//	State 	state;
+	byte[] 	addr = new byte[4];
+}

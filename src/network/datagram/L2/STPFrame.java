@@ -1,7 +1,6 @@
-package network.protocol.L2.STP;
+package network.datagram.L2;
 
-import network.datagram.L2.Frame;
-import network.datagram.L2.Util;
+import network.protocol.L2.STP.TcnBPDU;
 
 public class STPFrame {
 	final static int CONFIG_BPDU_TYPE = 0;
@@ -39,22 +38,7 @@ public class STPFrame {
         setHelloTime(2);
         setForwardDelay(15);
     }
-    
-    public STPFrame(ConfigBPDU config) {
-    	this();
-    	setMessageType(CONFIG_BPDU_TYPE);
-    	setRootId(Util.longToBytes(config.rootId, 8));
-    	setPathCost(config.rootPathCost);
-        setBridgeId(Util.longToBytes(config.bridgeId, 8));
-        setPortId(config.portId);
-        setMessageAge(config.messageAge);
-        setMaxAge(config.maxAge);
-        setHelloTime(config.helloTime);
-        setForwardDelay(config.forwardDelay);
-        setFlags(config.topologyChangeAcknowledgement? this.flags | 0x80: this.flags ^ 0x80); 
-        setFlags(config.topologyChange? this.flags | 0x01: this.flags ^ 0x01);
-    }
-    
+      
     public STPFrame(TcnBPDU tcn) {
     	this();
     	setMessageType(TCN_BPDU_TYPE);
@@ -293,7 +277,7 @@ public class STPFrame {
         str += "Spanning Tree Protocol";
         str += "\n\tProtocol Identifier: " + String.format("0x%04x", this.protocolId);
         str += "\n\tProtocol Version Identifier: " + this.version;
-        str += "\n\tBPDU Type: " + this.messageType;
+        str += "\n\tBPDU Type: " + String.format("0x%02x", this.messageType);
         str += "\n\tBPDU flags: " + String.format("0x%02x", this.flags);
         str += "\n\tRoot Identifier: " + this.rootBridgePriority + " / " + Util.bytes2Addr(this.rootBridgeAddress);
         str += "\n\tRoot Path Cost: " + this.pathCost;

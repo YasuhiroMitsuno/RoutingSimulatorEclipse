@@ -35,6 +35,14 @@ public class Util {
         return addr;
     }
     
+    public static boolean equalsAddr(byte[] A, byte[] B) {
+    	if (A.length != B.length) return false;
+    	for (int i=0;i<A.length;i++) {
+    		if (A[i] != B[i]) return false;
+    	}
+    	return true;
+    }
+    
     public static boolean isLargeAddr(byte[] A, byte[] B, int length) {
     	for (int i=0;i<length;i++) {
     		if (A[i] > B[i]) return true;

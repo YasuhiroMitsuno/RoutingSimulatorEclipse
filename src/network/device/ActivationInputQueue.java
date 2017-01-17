@@ -4,7 +4,7 @@ import network.datagram.L2.Frame;
 
 /* Activation Input Queue Class */
 class ActivationInputQueue<T extends Frame> extends ActivationQueue<T> {
-    protected static final int MAX_SIZE = 5000;
+    protected static final int MAX_SIZE = 500;
     protected Port delegate;
     public void setDelegate(Port delegate) {
         this.delegate = delegate;

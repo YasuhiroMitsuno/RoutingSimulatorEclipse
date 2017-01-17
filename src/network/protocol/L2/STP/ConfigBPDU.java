@@ -1,15 +1,16 @@
 package network.protocol.L2.STP;
 
+import network.datagram.L2.STPFrame;
 import network.datagram.L2.Util;
 
 class ConfigBPDU {
-	final static int TOPOLOGY_CHANGE = 0x01;
-	final static int PROPOSAL = 0x02;
-	final static int PORT_ROLE = 0x0C;
-	final static int LEARNING = 0x10;
-	final static int FORWARDING = 0x20;
-	final static int AGREEMENT = 0x40;
-	final static int TOPOLOGY_CHANGE_ACK = 0x80;
+	final static byte TOPOLOGY_CHANGE = (byte)0x01;
+	final static byte PROPOSAL = (byte)0x02;
+	final static byte PORT_ROLE = (byte)0x0C;
+	final static byte LEARNING = (byte)0x10;
+	final static byte FORWARDING = (byte)0x20;
+	final static byte AGREEMENT = (byte)0x40;
+	final static byte TOPOLOGY_CHANGE_ACK = (byte)0x80;
 	int type;
     long rootId;    /* Root Identifier */
     long rootPathCost;    /* Path Cost */
@@ -23,7 +24,8 @@ class ConfigBPDU {
     boolean topologyChange;
     
     ConfigBPDU() {
-    	
+    	this.topologyChangeAcknowledgement = false;
+    	this.topologyChange = false;
     }
     
     ConfigBPDU(STPFrame stpFrame) {

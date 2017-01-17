@@ -2,11 +2,11 @@ package network.device;
 
 import network.datagram.L2.Util;
 	
-public class BridgeFactory extends DeviceFactory {
-	private byte[] vendorCode = {(byte)0x01, (byte)0x23, (byte)0x45};
+public class TerminalFactory extends DeviceFactory {
+	private byte[] vendorCode = {(byte)0x11, (byte)0x22, (byte)0x33};
 	private byte[] nextProductCode;
 	
-	public BridgeFactory() {
+	public TerminalFactory() {
 		//vendorCode = new byte[3];
 		nextProductCode = new byte[3];
 	}
@@ -23,8 +23,8 @@ public class BridgeFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		Bridge bridge = new Bridge(address);
-		return bridge;
+		Terminal terminal = new Terminal(address);
+		return terminal;
 	}
 
 	@Override
@@ -39,8 +39,8 @@ public class BridgeFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		Bridge bridge = new Bridge(address, x, y);
-		return bridge;
+		Terminal terminal = new Terminal(address, x, y);
+		return terminal;
 	}
 	
 }

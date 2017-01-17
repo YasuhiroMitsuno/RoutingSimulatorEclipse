@@ -16,44 +16,62 @@ import java.util.regex.*;
 import network.device.Device;
 import network.datagram.L2.Frame;
 import network.datagram.L3.Packet;
-import network.device.Bridge;
-import network.device.BridgeFactory;
+import network.device.L2Switch;
+import network.device.L2SwitchFactory;
+import network.device.L3Switch;
+import network.device.L3SwitchFactory;
+import network.device.Terminal;
+import network.device.TerminalFactory;
 
 class DeviceController extends Thread {
+	RoutingSimulator delegate;
     List<Device> devices;
     List<Device[]> connection;
     List<Integer[]> offset;
     boolean drawOval = false;
     boolean drawDescription = false;
     int a = 0;
-    BridgeFactory bridgeFactory;
+    L2SwitchFactory l2SwitchFactory;
+    L3SwitchFactory l3SwitchFactory;    
+    TerminalFactory terminalFactory;
     
     public DeviceController() {
 	devices = new ArrayList<Device>();
 	offset = new ArrayList<Integer[]>();        
 	connection = new ArrayList<Device[]>();
-	 bridgeFactory = new BridgeFactory();	
+	l2SwitchFactory = new L2SwitchFactory();	
+	l3SwitchFactory = new L3SwitchFactory();	
+	terminalFactory = new TerminalFactory();	
 //    this.start();
+    }
+    
+    public DeviceController(RoutingSimulator delegate) {
+    	this();
+    	this.delegate = delegate;
     }
 
     public void run() {
         while(true) {
-            try{
+            try{	
                 Thread.sleep(1000);
             } catch (InterruptedException e){}
             for(int i=0;i<devices.size();i++) {
                 Device d = devices.get(i);
-                d.position.setLocation(d.position.getX()+Math.random() - 0.5, d.position.getY()+Math.random() - 0.5);
+  //              d.position.setLocation(d.position.getX()+Math.random() - 0.5, d.position.getY()+Math.random() - 0.5);
+                if (d.selected) {
+                	delegate.setLog(d.getLog());
+                }
             }
-	        reconnect();
+
+//	        reconnect();
         }
     }
 
     public void add(double x, double y) {
-	Device nd = bridgeFactory.create(x, y);//new Terminal(x, y);
+	Device nd = l2SwitchFactory.create(x, y);//new Terminal(x, y);
         nd.MTU = 1500;
         //	nd.start();
-	devices.add(nd);
+        devices.add(nd);
 
 	for(int i=0;i<devices.size();i++) {
 	    Device d = devices.get(i);
@@ -73,34 +91,47 @@ class DeviceController extends Thread {
 	    }
 	}
     }
-
-    public void add_hub(double x, double y) {
-        Bridge nd = (Bridge)bridgeFactory.create(x, y);
-        nd.MTU = 1500;
+    
+    public void add_device(Device device, double x, double y) {
+        device.MTU = 1500;
     //    nd.start();
         
-	devices.add(nd);
+        devices.add(device);
         int c=0;
-	for(int i=0;i<devices.size();i++) {
-	    Device d = devices.get(i);
-	    if (nd == d) continue;
-	    if (distance(nd, d) <= 20 && distance(nd,d) < 20) {
-		//		if (nd.connectionSize() >= 3 || d.connectionSize() >= 3) continue;
-
+		for(int i=0;i<devices.size();i++) {
+		    Device d = devices.get(i);
+		    if (device == d) continue;
+		    if (distance(device, d) <= 20 && distance(device,d) < 20) {
+			//		if (nd.connectionSize() >= 3 || d.connectionSize() >= 3) continue;
+	
                 Integer a[] = new Integer[2];
-                a[0] = nd.getNumber();
+                a[0] = device.getNumber();
                 a[1] = d.getNumber();
                 offset.add(a);
-		Device devices[] = new Device[2];
-		devices[0] = nd;
-		devices[1] = d;
-		connection.add(devices);
-                
-                Device.connect(nd, d);                
-	    }
-	}
+				Device devices[] = new Device[2];
+				devices[0] = device;
+				devices[1] = d;
+				connection.add(devices);
+		                
+	            Device.connect(device, d);                
+		    }
+		}
     }
 
+    public void add_l2(double x, double y) {
+        L2Switch l2Switch = (L2Switch)l2SwitchFactory.create(x, y);
+        add_device(l2Switch, x, y);
+    }
+    
+    public void add_l3(double x, double y) {
+        L3Switch l3Switch = (L3Switch)l3SwitchFactory.create(x, y);
+        add_device(l3Switch, x, y);
+    }
+    
+    public void add_terminal(double x, double y) {
+    	Terminal terminal = (Terminal)terminalFactory.create(x, y);
+        add_device(terminal, x, y);
+    }
 
     public void reconnect() {
         /*
@@ -263,6 +294,15 @@ class DeviceController extends Thread {
 	}
     }
 
+    public void execute(String command) {
+    	for(int i=0;i<devices.size();i++) {
+    	    Device d = devices.get(i);
+    	    if (d.selected) {
+    	    	d.execute(command);
+    	    }
+    	}
+    }
+    
     public void moveSelectedDevice(double scale, int dx, int dy) {
 	for(int i=0;i<devices.size();i++) {
 	    Device d = devices.get(i);
@@ -302,6 +342,9 @@ class DeviceController extends Thread {
                 };
                 Packet packet = new Packet(bytes);
                 packet.setData(new byte[65535 - 20]);
+                packet.setDestination("192.168.0.2");
+                packet.setSource("10.0.0.2");
+                packet.setTTL(2);
                 Frame frame = new Frame();
                 frame.setData(packet.getBytes());
                 SendFrameThread sfThread = new SendFrameThread();
@@ -334,7 +377,7 @@ class DeviceController extends Thread {
                     }catch(InterruptedException e) {
                     }
                 }
-                delegate.sendFrame(1, frame);
+                delegate.sendFrame(i, frame);
             }
         }
     }

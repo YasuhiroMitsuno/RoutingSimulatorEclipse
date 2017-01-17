@@ -14,6 +14,7 @@ import java.awt.image.*;
 import javax.swing.*;
 
 class TestCanvas extends Canvas implements MouseListener, MouseMotionListener, MouseWheelListener {
+	private RoutingSimulator delegate;
     private double zoom = 1.0;
     private int x0 = 0;
     private int y0 = 0;
@@ -27,6 +28,10 @@ class TestCanvas extends Canvas implements MouseListener, MouseMotionListener, M
     private AffineTransform inverseTransform;
     private JPopupMenu popup = new JPopupMenu();
     private Point2D loc;
+    
+    public TestCanvas(RoutingSimulator delegate) {
+    	this.delegate = delegate;
+    }
 
     private JMenuItem addPopupMenuItem(String name, ActionListener al) {
         JMenuItem item = new JMenuItem(name);
@@ -36,11 +41,22 @@ class TestCanvas extends Canvas implements MouseListener, MouseMotionListener, M
     }
 
     public void init() {
-	deviceController = new DeviceController();
+	deviceController = new DeviceController(delegate);
+	//deviceController.start();
 	selectedRect = new Rectangle(0,0,0,0);
-    addPopupMenuItem("デバイス追加", new ActionListener() {
+    addPopupMenuItem("デバイス追加（L2）", new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-            deviceController.add_hub(loc.getX()/ scale, loc.getY() /scale);
+            deviceController.add_l2(loc.getX()/ scale, loc.getY() /scale);
+        }
+        });
+    addPopupMenuItem("デバイス追加（L3）", new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+            deviceController.add_l3(loc.getX()/ scale, loc.getY() /scale);
+        }
+        });
+    addPopupMenuItem("デバイス追加（Terminal）", new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+            deviceController.add_terminal(loc.getX()/ scale, loc.getY() /scale);
         }
         });
 	addPopupMenuItem("全域木構成", new ActionListener() {
@@ -390,5 +406,9 @@ class TestCanvas extends Canvas implements MouseListener, MouseMotionListener, M
 	    if (scale < 1) { scale = 1; }
 	}
 
+    }
+    
+    public void execute(String command) {
+    	deviceController.execute(command);
     }
 }

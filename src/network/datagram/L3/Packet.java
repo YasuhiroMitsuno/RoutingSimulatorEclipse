@@ -188,6 +188,10 @@ public class Packet {
     public int getOffset() {
         return this.offset;
     }
+    
+    public int getTTL() {
+    	return this.TTL;
+    }
 
     public void setDestination(byte[] destination) {
         this.destination = destination;

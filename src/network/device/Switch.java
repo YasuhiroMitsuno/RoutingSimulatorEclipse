@@ -5,7 +5,7 @@ import java.io.IOException;
 import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 
-public class Switch extends Bridge {
+public class Switch extends L2Switch {
     private byte[][] table;
 
     public Switch() {
@@ -22,7 +22,7 @@ public class Switch extends Bridge {
         }
     }
     
-    protected void test(Frame frame, int index) {
+    protected void doForFrame(Frame frame, int index) {
         table[index] = frame.getSource();
         showTable();
         byte[] data = frame.getBytes();

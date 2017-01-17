@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Color;
 
 import network.datagram.L2.Frame;
+import network.protocol.L2.STP.STP;
 
 public class Port {
     private final ActivationInputQueue<Frame> inputQueue;
@@ -18,14 +19,19 @@ public class Port {
     private long outStat;
     private int speed;
     public Boolean slow;
+    private boolean linkup;
 
     public Port(Device delegate) {
         this(delegate, 0);
     }
 
     public Port(Device delegate, int number) {
+    	this();
         this.delegate = delegate;
         this.number = number;
+    }
+    
+    public Port() {
         inputQueue = new ActivationInputQueue<Frame>();
         outputQueue = new ActivationOutputQueue<Frame>();
         inputQueue.setDelegate(this);
@@ -36,6 +42,7 @@ public class Port {
         outStat = 0;
         speed = 10;
         slow = false;
+    	linkup = false;
     }
     
     public void setSpeed(int speed) {
@@ -49,7 +56,9 @@ public class Port {
     /* Add the received frame to the input queue */
     public void receive(Frame frame) {
         /* Reproduce the transfer delay with sleep & neccesary */
-        this.using = true;
+    	if (linkup) {
+    		this.using = true;
+    	}
         try {
             Thread.sleep(0, 1);
         }catch(InterruptedException e) {
@@ -120,12 +129,24 @@ public class Port {
         }
         return str;
     }
+    
+    public boolean getLinkup() {
+    	return linkup;
+    }
 
     public void draw(Graphics g) {
         if (using || !isConnected()) {
             g.setColor(Color.BLACK);
+        } else if (linkup && connectedPort.getLinkup()) {
+        	g.setColor(Color.GREEN);
         } else {
-            g.setColor(Color.GREEN);
+        	g.setColor(Color.ORANGE);
+        }
+        
+        if (delegate.stp.getState(getNumber()) == STP.State.FORWARDING) {
+        	this.linkup = true;
+        } else {
+        	this.linkup = false;
         }
 
         g.fillOval(-10/2, -10/2, 10, 10);
@@ -139,11 +160,12 @@ public class Port {
         }
         g.drawString("↓" + getByteString(inStat), 15, -7);
         g.drawString("↑" + getByteString(outStat), 85, -7);
+
 /*
         g.setColor(Color.GREEN);
         g.drawString(inputQueue.ratioString(), 15, 0);
         g.setColor(Color.BLUE);
         g.drawString(outputQueue.ratioString(), 15 + 70, 0);
-        */
+*/
     }
 }

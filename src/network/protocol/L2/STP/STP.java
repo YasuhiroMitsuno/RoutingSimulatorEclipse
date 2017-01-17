@@ -3,20 +3,23 @@ package network.protocol.L2.STP;
 import java.util.TimerTask;
 
 import network.datagram.L2.Frame;
+import network.datagram.L2.LLCU;
+import network.datagram.L2.STPFrame;
 import network.datagram.L2.Util;
 import network.device.Device;
 import network.protocol.L2.STP.STP.State;
 
-public class STP extends Thread {
+public class STP {
 	private Device delegate = null;
 	private java.util.Timer timer;
+	private boolean enabled;
 	
     /* From IEEE Standard 802.1D 1998 Edition */	
 	public enum State {
         DISABLED, LISTENING, LEARNING, FORWARDING, BLOCKING
 	}
-	final static int CONFIG_BPDU_TYPE = 0;
-	final static int TCN_BPDU_TYPE = 128;
+	final static byte CONFIG_BPDU_TYPE = (byte)0x00;
+	final static byte TCN_BPDU_TYPE = (byte)0x80;
 	final static int ZERO = 0;	
 	final static int ONE = 1;
 	final static int NO_PORT = 0;
@@ -72,19 +75,44 @@ public class STP extends Thread {
     	
 		initialisation();
 		this.timer = new java.util.Timer();
-		timer.schedule(new TickTask(this), 1000, 1000);
+		setEnabled(true);
 	}
 	
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+		if (enabled) {
+			timer.schedule(new TickTask(this), 5000, 1000);
+		} else {
+			timer.cancel();
+		}
+	}
+
 	private void sendConfigBPDU(int portNo, ConfigBPDU config) {
-		STPFrame stpFrame = new STPFrame(config);
+		if (!enabled) return;
+		STPFrame stpFrame = new STPFrame();
+		stpFrame.setMessageType(CONFIG_BPDU_TYPE);
+	    stpFrame.setRootId(Util.longToBytes(config.rootId, 8));
+	    stpFrame.setPathCost(config.rootPathCost);
+	    stpFrame.setBridgeId(Util.longToBytes(config.bridgeId, 8));
+	    stpFrame.setPortId(config.portId);
+	    stpFrame.setMessageAge(config.messageAge);
+	    stpFrame.setMaxAge(config.maxAge);
+	    stpFrame.setHelloTime(config.helloTime);
+	    stpFrame.setForwardDelay(config.forwardDelay);
+	    stpFrame.setFlags(config.topologyChangeAcknowledgement? stpFrame.getFlags() | 0x80: stpFrame.getFlags() ^ 0x80); 
+	    stpFrame.setFlags(config.topologyChange? stpFrame.getFlags() | 0x01: stpFrame.getFlags() ^ 0x01);
+		LLCU llcu = LLC.llcuFromBPDU(stpFrame);
 		Frame frame = new Frame();
-		frame.setData(stpFrame.getBytes());
+		frame.setData(llcu.getBytes());
 		delegate.sendFrame(portNo-1, frame);
 	}
 	
-	public void receivedSTPFrame(int portNo, Frame frame) {
-
-		STPFrame stpFrame = new STPFrame(frame);
+	public void receivedBPDU(int portNo, STPFrame stpFrame) {
+		if (!enabled) return;		
 		if (stpFrame.getMessageType() == CONFIG_BPDU_TYPE) {
 			ConfigBPDU config = new ConfigBPDU(stpFrame);
 			receivedConfigBPDU(portNo + 1, config);
@@ -92,8 +120,6 @@ public class STP extends Thread {
 			TcnBPDU tcn = new TcnBPDU(stpFrame);
 			receivedTCNBPDU(portNo + 1, tcn);
 		}
-		
-
 	}
 	
 	private void setBridgeAddress(byte[] address) {
@@ -224,9 +250,10 @@ public class STP extends Thread {
     
     private void sendTCNBPDU(int portNo, TcnBPDU bpdu) {
 		STPFrame stpFrame = new STPFrame(bpdu);
+		LLCU llcu = LLC.llcuFromBPDU(stpFrame);
 		Frame frame = new Frame();
-		frame.setData(stpFrame.getBytes());
-		delegate.sendFrame(portNo-1, frame);
+		frame.setData(llcu.getBytes());
+	//	delegate.sendFrame(portNo-1, frame);
 	} 
     
     public void configurationUpdate() {
@@ -522,9 +549,13 @@ public class STP extends Thread {
     }
     
     public void enablePort(int portNo) {
+    	if (!enabled) {
+    		setPortState(portNo, State.FORWARDING);
+    	} else {
     	initializePort(portNo);
     	
     	portStateSelection();
+    	}
     }
     
     public void disablePort(int portNo) {
