@@ -22,11 +22,28 @@ public class L3Switch extends L2Switch {
 	
 	final protected void fetch(Packet packet, int fromPortNo) {
 		packet.setTTL(packet.getTTL() - 1);
+
+		if (Util.equalsAddr(portInfo[fromPortNo].addr ,packet.getDestination())) {
+			System.out.println("GET PACKET");
+			if (packet.getProtocol() == 1) {
+				Packet rPacket = new Packet();
+				rPacket.setDestination(packet.getSource());
+				rPacket.setSource(portInfo[fromPortNo].addr);
+				rPacket.setProtocol(2);
+				rPacket.setTTL(255);
+				rPacket.setData(new byte[2]);
+				Frame frame = new Frame();
+				frame.setData(rPacket.getBytes());
+				this.sendFrame(fromPortNo, frame);
+				return;
+			}
+		}
+		
 		if (packet.getTTL() == 0) {
 			Packet rPacket = new Packet();
 			rPacket.setDestination(packet.getSource());
 			rPacket.setSource(portInfo[fromPortNo].addr);
-			rPacket.setProtocol(1);
+			rPacket.setProtocol(2);
 			rPacket.setTTL(255);
 			rPacket.setData(new byte[2]);
 			Frame frame = new Frame();
@@ -40,6 +57,8 @@ public class L3Switch extends L2Switch {
 			Frame frame = new Frame();
 			frame.setData(packet.getBytes());
 			this.sendFrame(toPortNo, frame);
+		} else {
+			System.out.println("Destination ERROR");
 		}
 	}
 	

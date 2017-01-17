@@ -28,4 +28,12 @@ public class Util {
             String.format("%d", (bytes[3] & 0xFF));
         return addr;
     }
+    
+    public static boolean equalsAddr(byte[] A, byte[] B) {
+    	if (A.length != B.length) return false;
+    	for (int i=0;i<A.length;i++) {
+    		if (A[i] != B[i]) return false;
+    	}
+    	return true;
+    }
 }

@@ -292,7 +292,7 @@ public abstract class Device {
 		System.out.println(portNo);
 		Packet rPacket = new Packet();
 		rPacket.setSource(portInfo[portNo].addr);
-		rPacket.setSource(addr);
+		rPacket.setDestination(addr);
 		rPacket.setProtocol(1);
 		rPacket.setTTL(255);
 		rPacket.setData(new byte[2]);
@@ -336,7 +336,7 @@ class RouteInfo {
 		byte[] next = new byte[4];
 		for (int i=0;i<count;i++) {
 			if (IPv4.isSameNetwork(addr, routeData[i].addr, routeData[i].mask)) {
-				System.arraycopy(routeData[i], 0, next, 0, 4);		
+				System.arraycopy(routeData[i].next, 0, next, 0, 4);		
 			}
 		}
 		return next;
