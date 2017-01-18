@@ -19,18 +19,18 @@ public class L2Switch extends Device {
 	
 	L2Switch() {
         super();
-        size = 8;
-        ports = new Port[size];
-        for (int i=0;i<size;i++) {
+        portSize = 8;
+        ports = new Port[portSize];
+        for (int i=0;i<portSize;i++) {
             ports[i] = new Port(this, i);
         }
     }
 
     L2Switch(double x, double y) {
         super(x, y);
-        size = 8;
-        ports = new Port[size];
-        for (int i=0;i<size;i++) {
+        portSize = 8;
+        ports = new Port[portSize];
+        for (int i=0;i<portSize;i++) {
             ports[i] = new Port(this, i);
         }
     }

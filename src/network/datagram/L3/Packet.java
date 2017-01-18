@@ -180,6 +180,10 @@ public class Packet {
     public byte[] getSource() {
         return this.source;
     }
+    
+    public String getSourceString() {
+    	return Util.bytes2Addr(this.source);
+    }
 
     public int getFlags() {
         return this.flags;
@@ -210,6 +214,9 @@ public class Packet {
         return this.destination;
     }
     
+    public String getDestinationString() {
+    	return Util.bytes2Addr(this.destination);    	
+    }
 
     public void setData(byte[] data) {
         setLength(this.IHL * 4 + data.length);

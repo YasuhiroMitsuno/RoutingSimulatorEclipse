@@ -2,7 +2,7 @@ package network.datagram.L3;
 
 public class Util {
 	/**
-	 * MACアドレス文字列を6バイト配列に変換する。
+	 * IPアドレス文字列を4バイト配列に変換する。
 	 * @param addr
 	 * @return
 	 */
@@ -17,7 +17,7 @@ public class Util {
     }
 
     /**
-     * 6バイト配列をMACアドレス文字列に変換する。
+     * 4バイト配列をIPアドレス文字列に変換する。
      * @param bytes
      * @return
      */
