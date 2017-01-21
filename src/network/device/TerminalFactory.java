@@ -23,7 +23,7 @@ public class TerminalFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		Terminal terminal = new Terminal(address);
+		Terminal terminal = new Terminal(Util.byte2long(address, 0, 6));
 		return terminal;
 	}
 
@@ -39,7 +39,7 @@ public class TerminalFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		Terminal terminal = new Terminal(address, x, y);
+		Terminal terminal = new Terminal(Util.byte2long(address, 0, 6), x, y);
 		return terminal;
 	}
 	

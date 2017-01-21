@@ -32,6 +32,9 @@ public class Command {
 		case "ping":
 			ping();
 			break;
+		case "show":
+			show();
+			break;
 		}
 	}
 	
@@ -51,7 +54,7 @@ public class Command {
 		String addr = next();
 		String mask = next();
 		System.out.println(port + addr + mask);
-		delegate.setIP(Integer.parseInt(port), Util.addr2Bytes(addr), Util.addr2Bytes(mask));
+		delegate.setIP(Integer.parseInt(port), Util.addr2int(addr), Util.addr2int(mask));
 	}
 	
 	private void ipRoute() {
@@ -59,12 +62,38 @@ public class Command {
 		String mask = next();
 		String next = next();
 		System.out.println(addr + mask + next);
-		delegate.setRoute(Util.addr2Bytes(addr), Util.addr2Bytes(mask), Util.addr2Bytes(next));
+		delegate.setRoute(Util.addr2int(addr), Util.addr2int(mask), Util.addr2int(next));
 	}
 	
 	private void ping() {
 		String addr = next();
 		System.out.println("ping " + addr);
-		delegate.ping(Util.addr2Bytes(addr));
+		delegate.ping(Util.addr2int(addr));
+	}
+
+	private void show() {
+		switch (next()) {
+		case "ip":
+			showIp();
+			break;
+		}
+	}
+	
+	private void showIp() {
+		switch (next()) {
+		case "addr":
+			showIpAddr();
+			break;
+		case "route":
+			showIpRoute();
+			break;
+		}
+	}
+	private void showIpAddr() {
+		delegate.showIpAddr();
+	}
+	
+	private void showIpRoute() {
+		delegate.showIpRoute();
 	}
 }

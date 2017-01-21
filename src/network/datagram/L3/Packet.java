@@ -38,8 +38,8 @@ public class Packet {
     private int TTL;            /* Time to Live */
     private int protocol;       /* Protocol */
     private int checksum;       /* Header Checksum */
-    private byte[] source;      /* Source Address */
-    private byte[] destination; /* Destination Address */
+    private int source;      /* Source Address */
+    private int destination; /* Destination Address */
     private int option;         /* Options */
     private int padding;        /* Padding */
 
@@ -64,6 +64,10 @@ public class Packet {
         setSource("0.0.0.0");
         setDestination("0.0.0.0");
     }
+    
+    public Packet(Packet packet) {
+    	this(packet.getBytes());
+    }
 
     public Packet(byte[] bytes) {
 	_setBytes(bytes);
@@ -87,16 +91,8 @@ public class Packet {
         this.TTL            = (bytes[8] & 0xFF);
         this.protocol       = (bytes[9] & 0xFF);
         this.checksum       = (bytes[10] & 0xFF) << 8 | (bytes[11] & 0xFF);
-        this.source         = new byte[4];
-        this.source[0]      = bytes[12];
-        this.source[1]      = bytes[13];
-        this.source[2]      = bytes[14];
-        this.source[3]      = bytes[15];
-        this.destination    = new byte[4];
-        this.destination[0] = bytes[16];
-        this.destination[1] = bytes[17];
-        this.destination[2] = bytes[18];
-        this.destination[3] = bytes[19];
+        this.source         = Util.byte2int(bytes, 12);
+        this.destination	= Util.byte2int(bytes, 16);
     }
 
     public void setVersion(int version) {
@@ -165,11 +161,20 @@ public class Packet {
     }
 
     public void setSource(byte[] source) {
+        this.source = Util.byte2int(source, 0);
+        this.bytes[12] = source[0];
+        this.bytes[13] = source[1];
+        this.bytes[14] = source[2];
+        this.bytes[15] = source[3];
+        calcChecksum();
+    }
+    
+    public void setSource(int source) {
         this.source = source;
-        this.bytes[12] = this.source[0];
-        this.bytes[13] = this.source[1];
-        this.bytes[14] = this.source[2];
-        this.bytes[15] = this.source[3];
+        this.bytes[12] = (byte)((source >> 24) & 0xFF);
+        this.bytes[13] = (byte)((source >> 16) & 0xFF);
+        this.bytes[14] = (byte)((source >> 8) & 0xFF);
+        this.bytes[15] = (byte)(source & 0xFF);
         calcChecksum();
     }
 
@@ -177,12 +182,12 @@ public class Packet {
         setSource(addr2Bytes(addr));
     }
 
-    public byte[] getSource() {
-        return this.source;
+    public int getSource() {
+    	return this.source;
     }
     
     public String getSourceString() {
-    	return Util.bytes2Addr(this.source);
+    	return Util.bytes2Addr(Util.val2byte(this.source));
     }
 
     public int getFlags() {
@@ -198,11 +203,20 @@ public class Packet {
     }
 
     public void setDestination(byte[] destination) {
+        this.destination = Util.byte2int(destination, 0);
+        this.bytes[16] = destination[0];
+        this.bytes[17] = destination[1];
+        this.bytes[18] = destination[2];
+        this.bytes[19] = destination[3];
+        calcChecksum();
+    }
+    
+    public void setDestination(int destination) {
         this.destination = destination;
-        this.bytes[16] = this.destination[0];
-        this.bytes[17] = this.destination[1];
-        this.bytes[18] = this.destination[2];
-        this.bytes[19] = this.destination[3];
+        this.bytes[16] = (byte)(destination >> 24 & 0xFF);
+        this.bytes[17] = (byte)(destination >> 16 & 0xFF);
+        this.bytes[18] = (byte)(destination >> 8 & 0xFF);
+        this.bytes[19] = (byte)(destination & 0xFF);
         calcChecksum();
     }
 
@@ -210,12 +224,12 @@ public class Packet {
         setDestination(addr2Bytes(addr));
     }
 
-    public byte[] getDestination() {
+    public int getDestination() {
         return this.destination;
     }
     
     public String getDestinationString() {
-    	return Util.bytes2Addr(this.destination);    	
+    	return Util.bytes2Addr(Util.val2byte(this.destination));
     }
 
     public void setData(byte[] data) {
@@ -246,8 +260,8 @@ public class Packet {
         str += "\n\tTime to Live: " + this.TTL;
         str += "\n\tProtocol: " + IPv4.Protocol.getName(this.protocol) + " (" + this.protocol + ")";
         str += "\n\tHeader Checksum: " + String.format("0x%04x", this.checksum);
-        str += "\n\tSource Address: " + bytes2Addr(this.source);
-        str += "\n\tDestination Address: " + bytes2Addr(this.destination);
+        str += "\n\tSource Address: " + bytes2Addr(Util.val2byte(this.source));
+        str += "\n\tDestination Address: " + bytes2Addr(Util.val2byte(this.destination));
         return str;
     }
 

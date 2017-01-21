@@ -10,13 +10,13 @@ public class STPFrame {
     private int version;       /* Version */
     private int messageType;  /* Message Type */
     private int flags;         /* Flags */
-    private byte[] rootId;    /* Root ID */
+    private long rootId;    /* Root ID */
     private int rootBridgePriority; /* Root Bridge Priority */
-    private byte[] rootBridgeAddress;
+    private long rootBridgeAddress;
     private long pathCost;    /* Path Cost */
-    private byte[] bridgeId;  /* Bridge ID */
+    private long bridgeId;  /* Bridge ID */
     private int bridgePriority;     /* Bridge Priority */
-    private byte[] bridgeAddress;
+    private long bridgeAddress;
     private int portId;       /* Port ID */
     private int messageAge;   /* Message Age */
     private int maxAge;       /* Max Age */
@@ -25,10 +25,6 @@ public class STPFrame {
     
     public STPFrame() {
         this.bytes = new byte[35];
-        this.rootId = new byte[8];
-        this.rootBridgeAddress = new byte[6];
-        this.bridgeId = new byte[8];
-        this.bridgeAddress = new byte[6];        
         setProtocolId(0);
         setVersion(0);
         setMessageType(0x00);
@@ -60,25 +56,13 @@ public class STPFrame {
         this.version       = bytes[2] & 0xFF;
         this.messageType  = bytes[3] & 0xFF;
         this.flags         = bytes[4] & 0xFF;
-        this.rootId       = new byte[8];
-        for (int i=0;i<8;i++) {
-            this.rootId[i] = bytes[i+5];
-        }
+        this.rootId       = Util.byte2long(bytes, 5, 8);
         this.rootBridgePriority = (bytes[5] & 0xFF) << 8 | bytes[6] & 0xFF;
-        this.rootBridgeAddress = new byte[6];
-        for (int i=0;i<6;i++) {
-            this.rootBridgeAddress[i] = bytes[i+7];
-        }
+        this.rootBridgeAddress = Util.byte2long(bytes, 7, 6);
         this.pathCost     = (bytes[13] << 24 | bytes[14] << 16 | bytes[15] << 8 | bytes[16]);
-        this.bridgeId     = new byte[8];
-        for (int i=0;i<8;i++) {
-            this.bridgeId[i] = bytes[i+17];
-        }
+        this.bridgeId     = Util.byte2long(bytes, 17, 8);
         this.bridgePriority = (bytes[17] & 0xFF) << 8 | bytes[18] & 0xFF;
-        this.bridgeAddress = new byte[6];
-        for (int i=0;i<6;i++) {
-            this.bridgeAddress[i] = bytes[i+19];
-        }
+        this.bridgeAddress = Util.byte2long(bytes, 19, 6);
         this.portId       = (bytes[25] & 0xFF) << 8 | bytes[26] & 0xFF;
         this.messageAge   = (bytes[27] & 0xFF) << 8 | bytes[28] & 0xFF;
         this.maxAge       = (bytes[29] & 0xFF) << 8 | bytes[30] & 0xFF;
@@ -107,15 +91,10 @@ public class STPFrame {
         this.bytes[4] = (byte)this.flags;
     }
 
-    public void setRootId(byte[] rootId) {
+    public void setRootId(long rootId) {
         this.rootId = rootId;
-        for (int i=0;i<8;i++) {
-            this.bytes[i+5] = this.rootId[i];
-        }
-        this.rootBridgePriority = (rootId[0] & 0xFF) << 8 | rootId[1] & 0xFF;
-        for (int i=0;i<6;i++) {
-            this.rootBridgeAddress[i] = rootId[i+2];
-        }
+        this.rootBridgePriority = (int)(rootId >> 48 & 0xFFFF);
+        this.rootBridgeAddress = (rootId << 16) >> 16;
     }
     
     @Deprecated
@@ -126,16 +105,16 @@ public class STPFrame {
     }
     
     @Deprecated
-    public void setRootBridgeAddress(byte[] addr) {
+    public void setRootBridgeAddress(long addr) {
     	this.rootBridgeAddress = addr;
     	for (int i=0;i<6;i++) {
-    		this.bytes[i+7] = addr[i];
+    		this.bytes[i+7] = (byte)((addr >> 8*(5-i)) & 0xFF);
     	}
     }
     
     @Deprecated
     public void setRootBridgeAddress(String addr) {
-    	setRootBridgeAddress(Util.addr2Bytes(addr));
+    	setRootBridgeAddress(Util.addr2long(addr));
     }
 
     public void setPathCost(long pathCost) {
@@ -146,15 +125,10 @@ public class STPFrame {
         this.bytes[16] = (byte)(this.pathCost >>  0 & 0xFF);
     }
 
-    public void setBridgeId(byte[] bridgeId) {
+    public void setBridgeId(long bridgeId) {
         this.bridgeId = bridgeId;
-        for (int i=0;i<8;i++) {
-            this.bytes[i+17] = this.bridgeId[i];
-        }
-        this.bridgePriority = (bridgeId[0] & 0xFF) << 8 | bridgeId[1] & 0xFF;
-        for (int i=0;i<6;i++) {
-            this.bridgeAddress[i] = bridgeId[i+2];
-        }
+        this.bridgePriority = (int)(bridgeId >> 48 & 0xFFFF);
+        this.bridgeAddress = (bridgeId << 16) >> 16;
     }
 
     public void setBridgePriority(int priority) {
@@ -163,15 +137,12 @@ public class STPFrame {
     	this.bytes[18] = (byte)(priority & 0xFF);
   	}
     
-    public void setBridgeAddress(byte[] addr) {
+    public void setBridgeAddress(long addr) {
     	this.bridgeAddress = addr;
-    	for (int i=0;i<6;i++) {
-    		this.bytes[i+19] = addr[i];
-    	}
     }
     
     public void setBridgeAddress(String addr) {
-    	setBridgeAddress(Util.addr2Bytes(addr));
+    	setBridgeAddress(Util.addr2long(addr));
     }
 
     public void setPortId(int portId) {
@@ -224,7 +195,7 @@ public class STPFrame {
         return this.flags;
     }
 
-    public byte[] getRootId() {
+    public long getRootId() {
         return this.rootId;
     }
     
@@ -232,7 +203,7 @@ public class STPFrame {
     	return this.rootBridgePriority;
     }
     
-    public byte[] getRootBridgeAddress() {
+    public long getRootBridgeAddress() {
     	return this.rootBridgeAddress;
     }
 
@@ -240,7 +211,7 @@ public class STPFrame {
         return this.pathCost;
     }
 
-    public byte[] getBridgeId() {
+    public long getBridgeId() {
         return this.bridgeId;
     }
     
@@ -248,7 +219,7 @@ public class STPFrame {
     	return this.bridgePriority;
     }
     
-    public byte[] getBridgeAddress() {
+    public long getBridgeAddress() {
     	return this.bridgeAddress;
     }
 
@@ -279,9 +250,9 @@ public class STPFrame {
         str += "\n\tProtocol Version Identifier: " + this.version;
         str += "\n\tBPDU Type: " + String.format("0x%02x", this.messageType);
         str += "\n\tBPDU flags: " + String.format("0x%02x", this.flags);
-        str += "\n\tRoot Identifier: " + this.rootBridgePriority + " / " + Util.bytes2Addr(this.rootBridgeAddress);
+        str += "\n\tRoot Identifier: " + this.rootBridgePriority + " / " + Util.long2Addr(this.rootBridgeAddress);
         str += "\n\tRoot Path Cost: " + this.pathCost;
-        str += "\n\tBridge Identifier: " + this.bridgePriority + " / " + Util.bytes2Addr(this.bridgeAddress);
+        str += "\n\tBridge Identifier: " + this.bridgePriority + " / " + Util.long2Addr(this.bridgeAddress);
         str += "\n\tPort Identifier: " + String.format("0x%04x", this.portId);
         str += "\n\tMessage Age: " + this.messageAge;
         str += "\n\tMax Age: " + this.maxAge;

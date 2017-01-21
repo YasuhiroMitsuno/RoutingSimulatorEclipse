@@ -35,14 +35,14 @@ public class L2Switch extends Device {
         }
     }
 
-    L2Switch(byte[] bytes) {
-    	super(bytes);
+    L2Switch(long addr) {
+    	super(addr);
     	this.type = "L2";    	    	
     	stp = new STP(this);
     }
     
-    L2Switch(byte[] bytes, double x, double y) {
-    	super(bytes, x, y);
+    L2Switch(long addr, double x, double y) {
+    	super(addr, x, y);
     	this.type = "L2";    	
     	stp = new STP(this);
     }

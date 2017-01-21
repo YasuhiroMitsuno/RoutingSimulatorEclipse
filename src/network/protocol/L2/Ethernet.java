@@ -6,10 +6,12 @@ import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
 import network.datagram.L3.Packet;
 import network.device.Device;
+import network.protocol.L3.ARP;
 import network.protocol.L3.IPv4;
 
 public class Ethernet {
 	private Device delegate;
+	private ARP arp;
 	
     public static void read(Frame frame) {
     	System.out.println(frame.description());
@@ -35,12 +37,19 @@ public class Ethernet {
     	this.delegate = delegate;
     }
     
+    public Ethernet() {
+    	arp = new ARP(delegate);
+    }
+    
     private void receiveDataDecapsulation(Frame frame) {
     	if (!Util.equalsAddr(frame.getDestination(), delegate.getMACAddress())) {
     		return;
     	}
     	
     	//indication(frame.getDestination(), frame.getSource(), 0, frame.getFCS());
+    	if (frame.getLength() == 0x0806) {
+    		arp
+    	}
     }
     
     private void request(byte[] destinationAddress, byte[] sourceAddress, int macServiceDataUnit,byte[] frameCheckSequence) {
@@ -50,4 +59,8 @@ public class Ethernet {
     private void indication(byte[] destinationAddress, byte[] sourceAddress, int macServiceDataUnit,byte[] frameCheckSequence) {
     	
     }
+    
+    
+    
+    
 }

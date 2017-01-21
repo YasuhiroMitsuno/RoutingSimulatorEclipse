@@ -30,9 +30,9 @@ class ConfigBPDU {
     
     ConfigBPDU(STPFrame stpFrame) {
     	this.type = stpFrame.getMessageType();
-    	this.rootId = Util.bytesToLong(stpFrame.getRootId(), 8);
+    	this.rootId = stpFrame.getRootId();
     	this.rootPathCost = stpFrame.getPathCost();
-    	this.bridgeId = Util.bytesToLong(stpFrame.getBridgeId(), 8);
+    	this.bridgeId = stpFrame.getBridgeId();
     	this.portId = stpFrame.getPortId();
     	this.messageAge = stpFrame.getMessageAge();
     	this.maxAge = stpFrame.getMaxAge();

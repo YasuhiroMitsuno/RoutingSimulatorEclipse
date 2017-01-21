@@ -11,7 +11,7 @@ import java.awt.Color;
 
 import network.datagram.L2.Frame;
 import network.datagram.L2.Util;
-import network.datagram.L3.ICMPD;
+import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
 import network.protocol.L2.Ethernet;
 import network.protocol.L2.STP.STP;
@@ -29,9 +29,9 @@ public abstract class Device {
     public Boolean selected;
     protected Device device;
     public int MTU;
-    protected byte[] MACAddress;
+    protected long MACAddress;
 	private Command command;
-	protected IPv4 ipv4;
+	public IPv4 ipv4;
 	STP stp;    
 
     public static void connect(Device d1, Device d2) {
@@ -62,20 +62,20 @@ public abstract class Device {
     	ipv4 = new IPv4(this);
     }
     
-    public Device(byte[] bytes) {
+    public Device(long addr) {
     	this();
-    	MACAddress = bytes;
+    	MACAddress = addr;
     }
     
-    public Device(byte[] bytes, double x, double y) {
+    public Device(long addr, double x, double y) {
     	this();
-    	MACAddress = bytes;
+    	MACAddress = addr;
         position = new Point2D.Double(x, y);
     }
     
     public Device(String addr) {
     	this();
-    	MACAddress = Util.addr2Bytes(addr);
+    	MACAddress = Util.addr2long(addr);
     }
     
     public int getPortSize() {
@@ -90,7 +90,7 @@ public abstract class Device {
     	return this.ports;
     }
     
-    public byte[] getMACAddress() {
+    public long getMACAddress() {
     	return MACAddress;
     }
     
@@ -272,15 +272,23 @@ public abstract class Device {
         g2.setColor(Color.BLACK);
     }
     
-    public void setIP(int portNo, byte[] addr, byte[] mask) {
+    public void setIP(int portNo, int addr, int mask) {
 		ipv4.setIP(portNo, addr, mask);
 	}
 	
-	public void ping(byte[] addr) {
+	public void ping(int addr) {
 		ipv4.ping(addr);
 	}
 	
-	public void setRoute(byte[] addr, byte[] mask, byte[] next) {
+	public void setRoute(int addr, int mask, int next) {
 		ipv4.setRoute(addr, mask, next);
+	}
+	
+	public void showIpAddr() {
+		ipv4.showIpAddr();
+	}
+	
+	public void showIpRoute() {
+		ipv4.showIpRoute();
 	}
 }

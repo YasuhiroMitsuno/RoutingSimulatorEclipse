@@ -1,5 +1,7 @@
 package network.datagram.L2;
 
+import network.datagram.L2.Util;
+
 /*
   RFC3422(https://www.rfc-editor.org/rfc/rfc791.txt)に基づいたMACフレームクラス．
 
@@ -35,8 +37,8 @@ package network.datagram.L2;
 public class Frame {
     private byte[] bytes;       /* Binary Data */
     private byte HDLF_Flag;
-    private byte[] destination; /* Destination Address */
-    private byte[] source;      /* Source Address */
+    private long destination; /* Destination Address */
+    private long source;      /* Source Address */
     private int length;
     
     private byte[] FCS; /* Frame Check Sequence */
@@ -49,62 +51,57 @@ public class Frame {
 
     public Frame() {
         this.bytes = new byte[14];
-        this.destination = new byte[6];
-        this.source = new byte[6];
     }
 
     public Frame(byte[] bytes) {
         this.bytes          = bytes;
-        this.destination    = new byte[6];
-        this.destination[0] = bytes[0];
-        this.destination[1] = bytes[1];
-        this.destination[2] = bytes[2];
-        this.destination[3] = bytes[3];
-        this.destination[4] = bytes[4];
-        this.destination[5] = bytes[5];
-        this.source         = new byte[6];
-        this.source[0]      = bytes[6];
-        this.source[1]      = bytes[7];
-        this.source[2]      = bytes[8];
-        this.source[3]      = bytes[9];
-        this.source[4]      = bytes[10];
-        this.source[5]      = bytes[11];;
+        this.destination    = Util.byte2long(bytes, 0, 6);
+        this.destination    = Util.byte2long(bytes, 6, 6);
         this.length         = (bytes[12] & 0xFF) << 8 | bytes[13] & 0xFF;
     }
-
-    public void setDestination(byte[] destination) {
+    
+    public void setDestination(long destination) {
         this.destination = destination;
-        this.bytes[0] = this.destination[0];
-        this.bytes[1] = this.destination[1];
-        this.bytes[2] = this.destination[2];
-        this.bytes[3] = this.destination[3];
-        this.bytes[4] = this.destination[4];
-        this.bytes[5] = this.destination[5];
+        this.bytes[0] = (byte)(destination >> 40 & 0xFF);
+        this.bytes[1] = (byte)(destination >> 32 & 0xFF);
+        this.bytes[2] = (byte)(destination >> 24 & 0xFF);
+        this.bytes[3] = (byte)(destination >> 16 & 0xFF);
+        this.bytes[4] = (byte)(destination >> 8 & 0xFF);
+        this.bytes[5] = (byte)(destination & 0xFF);
     }
 
     public void setDestination(String addr) {
-        setDestination(addr2Bytes(addr));
+        setDestination(Util.addr2long(addr));
     }
 
-    public byte[] getDestination() {
+    public long getDestination() {
         return this.destination;
     }
 
     public void setSource(byte[] source) {
-        this.source = source;
-        this.bytes[6] = this.source[0];
-        this.bytes[7] = this.source[1];
-        this.bytes[8] = this.source[2];
-        this.bytes[9] = this.source[3];
-        this.bytes[10] = this.source[4];
-        this.bytes[11] = this.source[5];
+        this.source = Util.byte2long(source, 0, 6);
+        this.bytes[6] = source[0];
+        this.bytes[7] = source[1];
+        this.bytes[8] = source[2];
+        this.bytes[9] = source[3];
+        this.bytes[10] = source[4];
+        this.bytes[11] = source[5];
     }
-
+    public void setSource(long source) {
+        this.source = source;
+        this.bytes[6] = (byte)(source >> 40 & 0xFF);
+        this.bytes[7] = (byte)(source >> 32 & 0xFF);
+        this.bytes[8] = (byte)(source >> 24 & 0xFF);
+        this.bytes[9] = (byte)(source >> 16 & 0xFF);
+        this.bytes[10] = (byte)(source >> 8 & 0xFF);
+        this.bytes[11] = (byte)(source & 0xFF);
+    }
+    
     public void setSource(String addr) {
         setSource(addr2Bytes(addr));
     }
 
-    public byte[] getSource() {
+    public long getSource() {
         return this.source;
     }
 
@@ -145,8 +142,8 @@ public class Frame {
     public String description() {
         String str = "";
         str += "MAC Frame";
-        str += "\n\tDestination Address: " + bytes2Addr(this.destination);
-        str += "\n\tSource Address: " + bytes2Addr(this.source);
+        str += "\n\tDestination Address: " + Util.long2Addr(this.destination);
+        str += "\n\tSource Address: " + Util.long2Addr(this.source);
         return str;
     }
 

@@ -23,7 +23,7 @@ public class L2SwitchFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		L2Switch bridge = new L2Switch(address);
+		L2Switch bridge = new L2Switch(Util.byte2long(address, 0, 6));
 		return bridge;
 	}
 
@@ -39,7 +39,7 @@ public class L2SwitchFactory extends DeviceFactory {
 
 		nextProductCode[2] += 1;
 		
-		L2Switch bridge = new L2Switch(address, x, y);
+		L2Switch bridge = new L2Switch(Util.byte2long(address, 0, 6), x, y);
 		return bridge;
 	}
 	

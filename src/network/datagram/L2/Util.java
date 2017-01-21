@@ -19,6 +19,18 @@ public class Util {
         bytes[5] = (byte)Integer.parseInt(addrs[5], 16);
         return bytes;
     }
+    
+    public static long addr2long(String addr) {
+    	String[] addrs = addr.split("\\:", 0);
+    	long val = 0;
+    	val |= Integer.parseInt(addrs[0], 16) << 40;
+    	val |= Integer.parseInt(addrs[1], 16) << 32;
+    	val |= Integer.parseInt(addrs[2], 16) << 24;
+    	val |= Integer.parseInt(addrs[3], 16) << 16;
+    	val |= Integer.parseInt(addrs[4], 16) << 8;
+    	val |= Integer.parseInt(addrs[5], 16);
+    	return val;
+    }
 
     /**
      * 6バイト配列をMACアドレス文字列に変換する。
@@ -32,6 +44,16 @@ public class Util {
             String.format("%02x", (bytes[3] & 0xFF)) + ":" +
             String.format("%02x", (bytes[4] & 0xFF)) + ":" +
             String.format("%02x", (bytes[5] & 0xFF));
+        return addr;
+    }
+    
+    public static String long2Addr(long val) {
+        String addr = String.format("%02x", (val >> 40 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 32 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 24 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 16 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 8 & 0xFF)) + ":" +
+            String.format("%02x", (val & 0xFF));
         return addr;
     }
     
@@ -73,12 +95,11 @@ public class Util {
     	return bytes;
     }
     
-    public static long bytesToLong(byte[] bytes, int length) {
-    	long l = 0;
-    	if (length > 8) length = 8;
-    	for (int i=0;i<length;i++) {
-    		l += ((long)bytes[i] << 8*i);
-    	}
-    	return l;
-    }
+	public static long byte2long(byte[] bytes, int offset, int length) {
+		long value = 0;
+		for (int i=0;i<length;i++) {
+			value |= bytes[offset+i] << 8*(length - i -1);
+		}
+		return value;
+	}
 }

@@ -3,7 +3,7 @@ package network.protocol.L3;
 import javax.management.relation.RoleInfo;
 
 import network.datagram.L2.Frame;
-import network.datagram.L3.ICMPD;
+import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
 import network.datagram.L3.Util;
 import network.datagram.L4.TCPSegment;
@@ -173,12 +173,14 @@ public class IPv4 {
 		this.enableForward = enableForward;
 	}
 	
-	public void setIP(int portNo, byte[] addr, byte[] mask) {
-		System.arraycopy(addr, 0, portInfo[portNo].addr, 0, 4);
-		System.arraycopy(mask, 0, portInfo[portNo].mask, 0, 4);		
+	public void setIP(int portNo, int addr, int mask) {
+		portInfo[portNo].addr = addr;
+		portInfo[portNo].mask = mask;
 	}
 	
-	public int sameNetworkPort(byte[] addr) {
+
+	
+	public int sameNetworkPort(int addr) {
 		for (int portNo=0;portNo<portSize;portNo++) {
 			if (IPv4.isSameNetwork(addr, portInfo[portNo].addr, portInfo[portNo].mask)) {
 				return portNo;
@@ -187,11 +189,20 @@ public class IPv4 {
 		return -1;
 	}
 	
-	public void setRoute(byte[] addr, byte[] mask, byte[] next) {
+	public int getPortForAddress(int addr) {
+		for (int portNo=0;portNo<portSize;portNo++) {
+			if (IPv4.isSameAddress(addr, portInfo[portNo].addr)) {
+				return portNo;
+			}
+		}
+		return -1;
+	}
+	
+	public void setRoute(int addr, int mask, int next) {
 		routeInfo.setRoute(addr, mask, next);
 	}
 	
-	public int nextPort(byte[] addr) {
+	public int nextPort(int addr) {
 		int portNo;
 		portNo = sameNetworkPort(addr);
 		if (portNo == -1) {
@@ -201,11 +212,8 @@ public class IPv4 {
 	}
 	
 	public void receivedPacket(Packet packet, int fromPortNo) {
-		if (Util.equalsAddr(portInfo[fromPortNo].addr ,packet.getDestination())) {
-			System.out.println("GET PACKET");
-			if (packet.getProtocol() == 1) {
-				icmp.receive(packet);			
-			}
+		if (packet.getProtocol() == 1) {
+			icmp.receive(packet);			
 		} else if (enableForward) {
 			int toPortNo = nextPort(packet.getDestination());
 			if (toPortNo != -1) {
@@ -216,16 +224,23 @@ public class IPv4 {
 		}
 	}
 	
-	public void ping(byte[] addr) {
+	public void ping(int addr) {
 		icmp.ping(addr);
 	}
 	
-	public void sendData(byte[] data, byte[] source, byte[] destination, int protocol, int ttl) {
-		if (source == null) {
-			int portNo = nextPort(destination);
-			System.out.println(portNo + " " + Util.bytes2Addr(destination));			
-			source = portInfo[portNo].addr;
+	public void showIpAddr() {
+		for (int portNo=0;portNo<portSize;portNo++) {
+			System.out.println(portNo + " " +
+					Util.int2addr(portInfo[portNo].addr) + " " + 
+					Util.int2addr(portInfo[portNo].mask));
 		}
+	}
+	
+	public void showIpRoute() {
+		routeInfo.show();
+	}
+	
+	public void sendData(byte[] data, int source, int destination, int protocol, int ttl) {
 		Packet packet = new Packet();
 		packet.setSource(source);
 		packet.setDestination(destination);
@@ -235,20 +250,24 @@ public class IPv4 {
 		sendPacket(packet);
 	}
 	
+	public void forwardPacket(Packet packet) {
+		packet.setTTL(packet.getTTL() - 1);
+		sendPacket(packet);
+	}
+	
 	private void sendPacket(Packet packet) {
 		int portNo = nextPort(packet.getDestination());
 		System.out.println("BBB" + portNo);
+		System.out.println(packet.description());
     	delegate.sendData(packet.getBytes(), portNo);
 	}
 	
-	public static boolean isSameNetwork(byte[] addr1, byte[] addr2, byte[] mask) {
-		boolean same = true;
-		for(int i=0;i<4;i++) {
-			if ((addr1[i] & mask[i]) != (addr2[i] & mask[i])) {
-				same = false;
-			}
-		}
-		return same;
+	public static boolean isSameNetwork(int addr1, int addr2, int mask) {
+		return ((addr1 & mask) == (addr2 & mask));
+	}
+	
+	public static boolean isSameAddress(int addr1, int addr2) {
+		return (addr1 == addr2);
 	}
 }
 
@@ -263,7 +282,15 @@ class RouteInfo {
 		}
 	}
 	
-	public void setRoute(byte[] addr, byte[] mask, byte[] next) {
+	public void show() {
+		for (int i=0;i<count;i++) {
+			System.out.println(Util.int2addr(routeData[i].addr) + " " + 
+									Util.int2addr(routeData[i].mask) + " " + 
+									Util.int2addr(routeData[i].next));
+		}
+	}
+	
+	public void setRoute(int addr, int mask, int next) {
 		routeData[count].addr = addr;
 		routeData[count].mask = mask;
 		routeData[count].next = next;
@@ -271,22 +298,17 @@ class RouteInfo {
 		sort();
 	}
 	
-	public byte[] getNextHop(byte[] addr) {
-		byte[] next = new byte[4];
+	public int getNextHop(int addr) {
 		for (int i=0;i<count;i++) {
 			if (IPv4.isSameNetwork(addr, routeData[i].addr, routeData[i].mask)) {
-				System.arraycopy(routeData[i].next, 0, next, 0, 4);		
+				return  routeData[i].next;
 			}
 		}
-		return next;
+		return 0;
 	}
 	
 	private boolean isSmall(RouteData routeData1, RouteData routeData2) {
-		boolean small = true;
-		for (int i=0;i<4;i++) {
-			if (routeData1.mask[i] > routeData2.mask[i]) small = false;
-		}
-		return small;
+		return routeData1.mask < routeData2.mask;
 	}
 	
 	private void sort() {
@@ -303,14 +325,14 @@ class RouteInfo {
 	}
 	
 	class RouteData {
-		byte[] addr = new byte[4];
-		byte[] mask = new byte[4];
-		byte[] next = new byte[4];
+		int addr;
+		int mask;
+		int next;
 	}
 }
 
 class PortData {
 	int 	portId;
-	byte[] 	addr = new byte[4];
-	byte[] 	mask = new byte[4];
+	int 	addr;
+	int 	mask = 255;
 }

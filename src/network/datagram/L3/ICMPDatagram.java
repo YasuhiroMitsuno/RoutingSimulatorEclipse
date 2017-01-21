@@ -2,21 +2,24 @@ package network.datagram.L3;
 
 import network.protocol.L3.IPv4;
 
-public class ICMPD {
+public class ICMPDatagram {
+//	public static String[] format = new String[16];
+	
+	
 	private byte[] bytes;
 	private byte type;
 	private byte code;
 	private int checksum;
 	
-	public ICMPD() {
+	public ICMPDatagram() {
 		bytes = new byte[4];
 	}
 	
-	public ICMPD(byte[] bytes) {
+	public ICMPDatagram(byte[] bytes) {
 		setBytes(bytes);
 	}
 	
-	public ICMPD(Packet packet) {
+	public ICMPDatagram(Packet packet) {
 		this(packet.getData());
 	}
 	

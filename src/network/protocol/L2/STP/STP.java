@@ -95,9 +95,9 @@ public class STP {
 		if (!enabled) return;
 		STPFrame stpFrame = new STPFrame();
 		stpFrame.setMessageType(CONFIG_BPDU_TYPE);
-	    stpFrame.setRootId(Util.longToBytes(config.rootId, 8));
+	    stpFrame.setRootId(config.rootId);
 	    stpFrame.setPathCost(config.rootPathCost);
-	    stpFrame.setBridgeId(Util.longToBytes(config.bridgeId, 8));
+	    stpFrame.setBridgeId(config.bridgeId);
 	    stpFrame.setPortId(config.portId);
 	    stpFrame.setMessageAge(config.messageAge);
 	    stpFrame.setMaxAge(config.maxAge);
@@ -122,8 +122,8 @@ public class STP {
 		}
 	}
 	
-	private void setBridgeAddress(byte[] address) {
-		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | Util.bytesToLong(address, 6) << 16;
+	private void setBridgeAddress(long address) {
+		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | address << 16;
 	}
     
 	public boolean willSendFrame(int portNo) {

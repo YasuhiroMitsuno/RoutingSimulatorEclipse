@@ -2,7 +2,7 @@ package network.device;
 
 import network.datagram.L2.Frame;
 import network.datagram.L3.Util;
-import network.datagram.L3.ICMPD;
+import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
 import network.protocol.L2.STP.STP;
 import network.protocol.L3.ICMP;
@@ -10,14 +10,14 @@ import network.protocol.L3.IPv4;
 
 public class L3Switch extends L2Switch {
 	
-    L3Switch(byte[] bytes) {
+    L3Switch(long bytes) {
     	super(bytes);
     	this.type = "L3";
     	stp.setEnabled(false);
     	ipv4.setEnableForward(true);
     }
 	
-	L3Switch(byte[] bytes, double x, double y) {
+	L3Switch(long bytes, double x, double y) {
 		super(bytes, x, y);
 		this.type = "L3";
 		stp.setEnabled(false);
