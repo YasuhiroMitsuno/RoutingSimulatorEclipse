@@ -32,6 +32,9 @@ public class Command {
 		case "ping":
 			ping();
 			break;
+		case "arp":
+			arp();
+			break;
 		case "show":
 			show();
 			break;
@@ -70,11 +73,26 @@ public class Command {
 		System.out.println("ping " + addr);
 		delegate.ping(Util.addr2int(addr));
 	}
-
+	
+	private void arp() {
+		String addr = next();
+		System.out.println("arp " + addr);
+		delegate.arp.arp(Util.addr2int(addr));
+	}
+	
 	private void show() {
 		switch (next()) {
 		case "ip":
 			showIp();
+			break;
+		case "interface":
+			showInterface();
+			break;
+		case "arp":
+			showArp();
+			break;
+		case "mac":
+			showMAC();
 			break;
 		}
 	}
@@ -95,5 +113,17 @@ public class Command {
 	
 	private void showIpRoute() {
 		delegate.showIpRoute();
+	}
+	
+	private void showInterface() {
+		delegate.showInterface();
+	}
+	
+	private void showArp() {
+		delegate.arp.showArpTable();
+	}
+	
+	private void showMAC() {
+		delegate.showMAC();
 	}
 }

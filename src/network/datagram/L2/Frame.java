@@ -35,8 +35,10 @@ import network.datagram.L2.Util;
  */
 
 public class Frame {
+	public static byte STANDARD_IEEE_802_3 = (byte)0b10101011;
+	public static byte STANDARD_ETHERNET_2 = (byte)0b10101010;
     private byte[] bytes;       /* Binary Data */
-    private byte HDLF_Flag;
+    private byte standard;
     private long destination; /* Destination Address */
     private long source;      /* Source Address */
     private int length;
@@ -44,30 +46,48 @@ public class Frame {
     private byte[] FCS; /* Frame Check Sequence */
 
     public static Frame getHeader(Frame frame) {
-        byte[] bytes = new byte[14];
-        System.arraycopy(frame.getBytes(), 0, bytes, 0, 14);
+        byte[] bytes = new byte[22];
+        System.arraycopy(frame.getBytes(), 0, bytes, 0, 22);
         return new Frame(bytes);
     }
 
     public Frame() {
-        this.bytes = new byte[14];
+        this.bytes = new byte[22];
+        setStandard(STANDARD_ETHERNET_2);
+    }
+    
+    public Frame(Frame frame) {
+    	this(frame.getBytes());
+    }
+    
+    public Frame(LLCU llcu) {
+    	this();
+       	setStandard(STANDARD_IEEE_802_3);
+      	setData(llcu.getData());
     }
 
+    public void setStandard(byte type) {
+    	this.standard = type;
+    	this.bytes[7] = type;
+    }
+    
     public Frame(byte[] bytes) {
         this.bytes          = bytes;
-        this.destination    = Util.byte2long(bytes, 0, 6);
-        this.destination    = Util.byte2long(bytes, 6, 6);
-        this.length         = (bytes[12] & 0xFF) << 8 | bytes[13] & 0xFF;
+        standard = bytes[7];
+        this.destination    = Util.byte2long(bytes, 8, 6);
+        this.source    		= Util.byte2long(bytes, 14, 6);
+        this.length         = (bytes[20] & 0xFF) << 8 | bytes[21] & 0xFF;
     }
     
     public void setDestination(long destination) {
+    	destination = destination << 16 >> 16;
         this.destination = destination;
-        this.bytes[0] = (byte)(destination >> 40 & 0xFF);
-        this.bytes[1] = (byte)(destination >> 32 & 0xFF);
-        this.bytes[2] = (byte)(destination >> 24 & 0xFF);
-        this.bytes[3] = (byte)(destination >> 16 & 0xFF);
-        this.bytes[4] = (byte)(destination >> 8 & 0xFF);
-        this.bytes[5] = (byte)(destination & 0xFF);
+        this.bytes[8] = (byte)(destination >> 40 & 0xFF);
+        this.bytes[9] = (byte)(destination >> 32 & 0xFF);
+        this.bytes[10] = (byte)(destination >> 24 & 0xFF);
+        this.bytes[11] = (byte)(destination >> 16 & 0xFF);
+        this.bytes[12] = (byte)(destination >> 8 & 0xFF);
+        this.bytes[13] = (byte)(destination & 0xFF);
     }
 
     public void setDestination(String addr) {
@@ -80,21 +100,21 @@ public class Frame {
 
     public void setSource(byte[] source) {
         this.source = Util.byte2long(source, 0, 6);
-        this.bytes[6] = source[0];
-        this.bytes[7] = source[1];
-        this.bytes[8] = source[2];
-        this.bytes[9] = source[3];
-        this.bytes[10] = source[4];
-        this.bytes[11] = source[5];
+        this.bytes[14] = source[0];
+        this.bytes[15] = source[1];
+        this.bytes[16] = source[2];
+        this.bytes[17] = source[3];
+        this.bytes[18] = source[4];
+        this.bytes[19] = source[5];
     }
     public void setSource(long source) {
         this.source = source;
-        this.bytes[6] = (byte)(source >> 40 & 0xFF);
-        this.bytes[7] = (byte)(source >> 32 & 0xFF);
-        this.bytes[8] = (byte)(source >> 24 & 0xFF);
-        this.bytes[9] = (byte)(source >> 16 & 0xFF);
-        this.bytes[10] = (byte)(source >> 8 & 0xFF);
-        this.bytes[11] = (byte)(source & 0xFF);
+        this.bytes[14] = (byte)(source >> 40 & 0xFF);
+        this.bytes[15] = (byte)(source >> 32 & 0xFF);
+        this.bytes[16] = (byte)(source >> 24 & 0xFF);
+        this.bytes[17] = (byte)(source >> 16 & 0xFF);
+        this.bytes[18] = (byte)(source >> 8 & 0xFF);
+        this.bytes[19] = (byte)(source & 0xFF);
     }
     
     public void setSource(String addr) {
@@ -109,17 +129,17 @@ public class Frame {
         if (data.length >= 1536) {
             setLength(data.length);
         } else {
-            setLength(14 + data.length);
+            setLength(22 + data.length);
         }
         byte[] newBytes;
         if (this.length >= 1536) {
-            newBytes = new byte[14 + this.length];
+            newBytes = new byte[22 + this.length];
         } else {
             newBytes = new byte[this.length];
         }
         /* Copy Header */
-        System.arraycopy(this.bytes, 0, newBytes, 0, 14);
-        System.arraycopy(data, 0, newBytes, 14, data.length);
+        System.arraycopy(this.bytes, 0, newBytes, 0, 22);
+        System.arraycopy(data, 0, newBytes, 22, data.length);
         this.bytes = newBytes;
     }
 
@@ -127,11 +147,14 @@ public class Frame {
         int len;
         if (this.length >= 1536) {
             len = this.length;
+            if (this.length == 0x0806) {
+            	len = 28;
+            }
         } else {
-            len = this.length - 14;
+            len = this.length;//this.length - 22;
         }
         byte[] data = new byte[len];
-        System.arraycopy(this.bytes, 14, data, 0, len);
+        System.arraycopy(this.bytes, 22, data, 0, len);
         return data;
     }
 
@@ -141,9 +164,14 @@ public class Frame {
 
     public String description() {
         String str = "";
-        str += "MAC Frame";
+        if (bytes[7] == STANDARD_IEEE_802_3) {
+        	str += "Frame IEEE 802.3";
+        } else if(bytes[7] == STANDARD_ETHERNET_2) {
+        	str += "Frame Ethernet II";
+        }
         str += "\n\tDestination Address: " + Util.long2Addr(this.destination);
         str += "\n\tSource Address: " + Util.long2Addr(this.source);
+        str += "\n\tSource Address: " + String.format("%04x", length);
         return str;
     }
 
@@ -180,4 +208,7 @@ public class Frame {
         return addr;
     }
 
+    public byte getStandard() {
+    	return standard;
+    }
 }

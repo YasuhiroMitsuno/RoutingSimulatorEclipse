@@ -34,8 +34,8 @@ public class ICMP {
 	}
 	
 	public void receive(Packet packet) {
-		System.out.println("receive ICMP");
 		ICMPDatagram icmpd = new ICMPDatagram(packet);
+		System.out.println(icmpd.description());
 		Formatter fm = new Formatter();
 		if (delegate.getPortForAddress(packet.getDestination()) != -1) {
 			if (icmpd.getType() == ICMP_TYPE_ECHO_REPLY && icmpd.getCode() == 0x00) {
@@ -64,7 +64,7 @@ public class ICMP {
 				replyICMPDatagram.setType(ICMP_TYPE_TIME_EXCEEDED);
 				replyICMPDatagram.setCode((byte)0x00);
 				int destination = packet.getSource();
-				int source = delegate.portInfo[delegate.nextPort(destination)].addr;			
+				int source = delegate.portInfo[delegate.nextPort(destination)].addr;
 				delegate.sendData(replyICMPDatagram.getBytes(), source, destination, 1, 100);
 			} else {
 				/* forward */

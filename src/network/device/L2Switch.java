@@ -10,7 +10,9 @@ import java.awt.Color;
 import network.datagram.L2.Frame;
 import network.datagram.L2.LLCU;
 import network.datagram.L2.STPFrame;
+import network.datagram.L3.ARPPacket;
 import network.datagram.L3.Packet;
+import network.datagram.L3.Util;
 import network.protocol.L2.STP.LLC;
 import network.protocol.L2.STP.STP;
 import network.protocol.L2.STP.STP.State;
@@ -51,36 +53,42 @@ public class L2Switch extends Device {
     	super(addr);
     }
     
-    public void fetch(Frame frame, int fromPortNo) {
+    final public void fetch(Frame frame, int fromPortNo) {
     	if (stp.getState(fromPortNo) == State.DISABLED) {
     		return;
     	}
+    	
+    	System.out.println(frame.description());
+    	
+    	if (frame.getDestination() != MACAddress && 
+    		frame.getDestination() != Util.addr2long("FF:FF:FF:FF:FF:FF")) {
+    		System.out.println(String.format("%012x", frame.getDestination()) + " " + String.format("%012x", Util.addr2long("FF:FF:FF:FF:FF:FF")));
+    		System.out.println("DELETE");
+    		return;
+    	}
 
-    	if (frame.getLength() < 1500) {
+    	if (frame.getStandard() == Frame.STANDARD_ETHERNET_2 || (frame.getStandard() == Frame.STANDARD_IEEE_802_3 && frame.getLength() >= 0x0600)) {
+    		doForFrame(frame, fromPortNo);
+    	} else if (frame.getStandard() == Frame.STANDARD_IEEE_802_3) {
     		LLCU llcu = new LLCU(frame);
+    		System.out.println(llcu.description());
     		if (llcu.getDsap() == LLC.STP) {
     			STPFrame stpFrame = new STPFrame(llcu.getData());
-    			//logger.log(frame.description());
-    			//logger.log(llcu.description());
-    			//logger.log(stpFrame.description());
+    			System.out.println(stpFrame.description());
     			stp.receivedBPDU(fromPortNo, stpFrame);
-    		} else {
-        		Packet packet = new Packet(frame);
-        		fetch(packet, fromPortNo);
     		}
     	} else {
-    		Packet packet = new Packet(frame);
-    		fetch(packet, fromPortNo);
+    		System.out.println("UNKNOWN");
     	}
-    	
-    	
+
      }
-    
-    protected void fetch(Packet packet, int fromPortNo) {
-    	Frame frame = new Frame();
-    	frame.setDestination("FF:FF:FF:FF:FF:FF");
-    	frame.setSource(this.MACAddress);
-    	frame.setData(packet.getBytes());
+        
+    protected void doForFrame(Frame frame, int fromPortNo) {
+    	Frame rFrame = new Frame();
+//    	rFrame.setDestination("FF:FF:FF:FF:FF:FF");
+    	rFrame.setSource(frame.getDestination());
+    	rFrame.setSource(this.MACAddress);
+    	rFrame.setData(frame.getData());
     	if (stp.willSendFrame(fromPortNo)) {
     		fradding(frame, fromPortNo);
     	}	

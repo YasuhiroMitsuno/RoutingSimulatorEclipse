@@ -25,6 +25,18 @@ public class Util {
     	val |= Integer.parseInt(addrs[3]);
     	return val;
     }
+    
+    public static long addr2long(String addr) {
+    	String[] addrs = addr.split("\\:", 0);
+    	long val = 0;
+    	val |= Integer.parseInt(addrs[0], 16) << 40;
+    	val |= Integer.parseInt(addrs[1], 16) << 32;
+    	val |= Integer.parseInt(addrs[2], 16) << 24;
+    	val |= Integer.parseInt(addrs[3], 16) << 16;
+    	val |= Integer.parseInt(addrs[4], 16) << 8;
+    	val |= Integer.parseInt(addrs[5], 16);
+    	return val;
+    }
 
     /**
      * 4バイト配列をIPアドレス文字列に変換する。
@@ -47,6 +59,16 @@ public class Util {
             return addr;
     }
     
+    public static String long2addr(long val) {
+        String addr = String.format("%02x", (val >> 40 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 32 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 24 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 16 & 0xFF)) + ":" +
+            String.format("%02x", (val >> 8 & 0xFF)) + ":" +
+            String.format("%02x", (val & 0xFF));
+        return addr;
+    }
+    
     public static boolean equalsAddr(byte[] A, byte[] B) {
     	if (A.length != B.length) return false;
     	for (int i=0;i<A.length;i++) {
@@ -59,7 +81,7 @@ public class Util {
 	public static short byte2short(byte[] bytes, int offset) {
 		short value = 0;
 		for (int i=0;i<2;i++) {
-			value |= (bytes[offset+i] & 0xFF) << 8*(1 - i);
+			value |= (short)(bytes[offset+i] & 0xFF) << 8*(1 - i);
 		}
 		return value;
 	}
@@ -67,7 +89,7 @@ public class Util {
 	public static int byte2int(byte[] bytes, int offset) {
 		int value = 0;
 		for (int i=0;i<4;i++) {
-			value |= (bytes[offset+i] & 0xFF) << 8*(3- i);
+			value |= (int)(bytes[offset+i] & 0xFF) << 8*(3- i);
 		}
 		return value;
 	}
@@ -75,7 +97,7 @@ public class Util {
 	public static long byte2long(byte[] bytes, int offset, int length) {
 		long value = 0;
 		for (int i=0;i<8;i++) {
-			value |= (bytes[offset+i] & 0xFF) << 8*(7 - i);
+			value |= (long)(bytes[offset+i] & 0xFF) << 8*(length - i - 1);
 		}
 		return value;
 	}

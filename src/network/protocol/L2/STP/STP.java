@@ -75,7 +75,7 @@ public class STP {
     	
 		initialisation();
 		this.timer = new java.util.Timer();
-		setEnabled(true);
+		//setEnabled(true);
 	}
 	
 	public boolean isEnabled() {
@@ -106,8 +106,7 @@ public class STP {
 	    stpFrame.setFlags(config.topologyChangeAcknowledgement? stpFrame.getFlags() | 0x80: stpFrame.getFlags() ^ 0x80); 
 	    stpFrame.setFlags(config.topologyChange? stpFrame.getFlags() | 0x01: stpFrame.getFlags() ^ 0x01);
 		LLCU llcu = LLC.llcuFromBPDU(stpFrame);
-		Frame frame = new Frame();
-		frame.setData(llcu.getBytes());
+		Frame frame = new Frame(llcu);
 		delegate.sendFrame(portNo-1, frame);
 	}
 	
@@ -123,7 +122,8 @@ public class STP {
 	}
 	
 	private void setBridgeAddress(long address) {
-		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | address << 16;
+		bridgeInfo.bridgeId = (bridgeInfo.bridgeId & 0xFF) | (address << 16) >> 16;
+		System.out.println(String.format("0x%016x", bridgeInfo.bridgeId));
 	}
     
 	public boolean willSendFrame(int portNo) {

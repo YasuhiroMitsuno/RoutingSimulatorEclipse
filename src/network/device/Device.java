@@ -16,6 +16,7 @@ import network.datagram.L3.Packet;
 import network.protocol.L2.Ethernet;
 import network.protocol.L2.STP.STP;
 import network.protocol.L2.STP.STP.State;
+import network.protocol.L3.ARP;
 import network.protocol.L3.ICMP;
 import network.protocol.L3.IPv4;
 
@@ -32,6 +33,7 @@ public abstract class Device {
     protected long MACAddress;
 	private Command command;
 	public IPv4 ipv4;
+	public ARP arp;
 	STP stp;    
 
     public static void connect(Device d1, Device d2) {
@@ -60,6 +62,7 @@ public abstract class Device {
 
     	command = new Command(this);
     	ipv4 = new IPv4(this);
+    	arp = new ARP(this);
     }
     
     public Device(long addr) {
@@ -122,13 +125,14 @@ public abstract class Device {
     /* Add the received queue to the output queue */
     public void sendFrame(int toPortNo, Frame frame) {
     	if (stp.getState(toPortNo) != State.DISABLED && stp.getState(toPortNo) != State.BLOCKING) {
-    		if (frame.getLength() > MTU + 18) {
+/*    		if (frame.getLength() > MTU + 18) {
     			MakeFragmentThread mfThread = new MakeFragmentThread();
     			mfThread.setDelegate(this);
     			mfThread.setFrame(frame);
     			mfThread.start();
     			return;
         	}
+        	*/
         	ports[toPortNo].send(frame);        	        
     	}
         //if ((stp != null && stp.willSendFrame(portNo))) {
@@ -136,14 +140,24 @@ public abstract class Device {
 //        }
     }
 
-    public void sendData(byte[] data, int toPortNo) {
+    public void broadcastData(byte[] data, int lengthOrType, int toPortNo) {
     	Frame frame = new Frame();
     	frame.setData(data);
     	frame.setDestination("FF:FF:FF:FF:FF:FF");
     	frame.setSource(this.MACAddress);
+    	frame.setLength(lengthOrType);
     	sendFrame(toPortNo, frame);
     }
     
+    public void unicastData(byte[] data, int lengthOrType, long macAddr, int toPortNo) {
+    	Frame frame = new Frame();
+    	frame.setData(data);
+    	frame.setDestination(macAddr);
+    	frame.setSource(this.MACAddress);
+    	frame.setLength(lengthOrType);
+    	sendFrame(toPortNo, frame);
+    }
+        
     public Port getPort(int index) {
 	return ports[index];
     }
@@ -170,6 +184,10 @@ public abstract class Device {
 
     public int getSendingCount() {
         return ports[0].getSendingCount();
+    }
+    
+    public void showMAC() {
+    	System.out.println(Util.long2Addr(MACAddress));
     }
 
     /* Take out frame from the input queue and interpret it */
@@ -290,5 +308,9 @@ public abstract class Device {
 	
 	public void showIpRoute() {
 		ipv4.showIpRoute();
+	}
+	
+	public void showInterface() {
+		System.out.println(Util.long2Addr(MACAddress));
 	}
 }

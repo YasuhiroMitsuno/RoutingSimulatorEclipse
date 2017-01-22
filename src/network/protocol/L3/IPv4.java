@@ -1,5 +1,7 @@
 package network.protocol.L3;
 
+import java.util.Arrays;
+
 import javax.management.relation.RoleInfo;
 
 import network.datagram.L2.Frame;
@@ -212,6 +214,8 @@ public class IPv4 {
 	}
 	
 	public void receivedPacket(Packet packet, int fromPortNo) {
+    	System.out.println(packet.description());
+    	
 		if (packet.getProtocol() == 1) {
 			icmp.receive(packet);			
 		} else if (enableForward) {
@@ -257,9 +261,13 @@ public class IPv4 {
 	
 	private void sendPacket(Packet packet) {
 		int portNo = nextPort(packet.getDestination());
-		System.out.println("BBB" + portNo);
-		System.out.println(packet.description());
-    	delegate.sendData(packet.getBytes(), portNo);
+		long macAddr = delegate.arp.getMacAddrForIpAddr(packet.getDestination());
+		if (macAddr == -1) {
+			System.out.println("NO MAC ADDRESS FOR" + Util.int2addr(packet.getDestination()));
+			delegate.arp.arp(packet.getDestination());
+			return;
+		}
+    	delegate.unicastData(packet.getBytes(), packet.getBytes().length, macAddr, portNo);
 	}
 	
 	public static boolean isSameNetwork(int addr1, int addr2, int mask) {
@@ -295,7 +303,7 @@ class RouteInfo {
 		routeData[count].mask = mask;
 		routeData[count].next = next;
 		count++;
-		sort();
+		Arrays.sort(routeData);
 	}
 	
 	public int getNextHop(int addr) {
@@ -307,27 +315,14 @@ class RouteInfo {
 		return 0;
 	}
 	
-	private boolean isSmall(RouteData routeData1, RouteData routeData2) {
-		return routeData1.mask < routeData2.mask;
-	}
-	
-	private void sort() {
-		RouteData tmp;
-		for (int i=0;i<count;i++) {
-			for (int j=0;j<count-i;j++) {
-				if (isSmall(routeData[i], routeData[j])) {
-					tmp = routeData[i];
-					routeData[i] = routeData[j];
-					routeData[j] = tmp;
-				}
-			}
-		}
-	}
-	
-	class RouteData {
+	class RouteData implements Comparable<RouteData> {
 		int addr;
 		int mask;
 		int next;
+		@Override
+		public int compareTo(RouteData o) {
+			return this.mask - o.mask;
+		}
 	}
 }
 

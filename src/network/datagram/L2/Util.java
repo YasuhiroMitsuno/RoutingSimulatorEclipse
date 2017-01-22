@@ -23,12 +23,13 @@ public class Util {
     public static long addr2long(String addr) {
     	String[] addrs = addr.split("\\:", 0);
     	long val = 0;
-    	val |= Integer.parseInt(addrs[0], 16) << 40;
-    	val |= Integer.parseInt(addrs[1], 16) << 32;
-    	val |= Integer.parseInt(addrs[2], 16) << 24;
-    	val |= Integer.parseInt(addrs[3], 16) << 16;
-    	val |= Integer.parseInt(addrs[4], 16) << 8;
-    	val |= Integer.parseInt(addrs[5], 16);
+    	val |= (long)Integer.parseInt(addrs[0], 16) << 40;
+    	val |= (long)Integer.parseInt(addrs[1], 16) << 32;
+    	val |= (long)Integer.parseInt(addrs[2], 16) << 24;
+    	val |= (long)Integer.parseInt(addrs[3], 16) << 16;
+    	val |= (long)Integer.parseInt(addrs[4], 16) << 8;
+    	val |= (long)Integer.parseInt(addrs[5], 16);
+    	val = val << 16 >> 16;
     	return val;
     }
 
@@ -98,7 +99,7 @@ public class Util {
 	public static long byte2long(byte[] bytes, int offset, int length) {
 		long value = 0;
 		for (int i=0;i<length;i++) {
-			value |= bytes[offset+i] << 8*(length - i -1);
+			value |= (long)(bytes[offset+i] & 0xFF) << 8*(length - i -1);
 		}
 		return value;
 	}

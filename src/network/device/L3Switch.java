@@ -2,6 +2,7 @@ package network.device;
 
 import network.datagram.L2.Frame;
 import network.datagram.L3.Util;
+import network.datagram.L3.ARPPacket;
 import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
 import network.protocol.L2.STP.STP;
@@ -22,6 +23,20 @@ public class L3Switch extends L2Switch {
 		this.type = "L3";
 		stp.setEnabled(false);
 		ipv4.setEnableForward(true);
+	}
+    
+	protected void doForFrame(Frame frame, int fromPortNo) {
+		if (frame.getLength() == 0x0806) {
+			ARPPacket arpPacket = new ARPPacket(frame);
+			fetch(arpPacket, fromPortNo);
+		} else {
+			Packet packet = new Packet(frame);
+			fetch(packet, fromPortNo);
+		}
+	}
+	
+	final protected void fetch(ARPPacket arpPacket, int fromPortNo) {
+		arp.receive(arpPacket);
 	}
 	
 	final protected void fetch(Packet packet, int fromPortNo) {
