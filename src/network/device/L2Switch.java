@@ -1,7 +1,9 @@
 package network.device;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.omg.CORBA.portable.Delegate;
 
@@ -92,7 +94,7 @@ public class L2Switch extends Device {
     		return;
     	}
 
-    	if (frame.getStandard() == Frame.STANDARD_ETHERNET_2 || (frame.getStandard() == Frame.STANDARD_IEEE_802_3 && frame.getLength() >= 0x0600)) {
+    	if (frame.getStandard() == Frame.STANDARD_ETHERNET_2) {// || (frame.getStandard() == Frame.STANDARD_IEEE_802_3 && frame.getLength() >= 0x0600)) {
     		doForFrame(frame, fromPortNo);
     	} else if (frame.getStandard() == Frame.STANDARD_IEEE_802_3) {
     		LLCU llcu = new LLCU(frame);
@@ -132,7 +134,7 @@ public class L2Switch extends Device {
     }
     
     private void transmit(Frame frame, int fromPortNo) {
-    	int toPortNo = table.getPortForMacAddr(frame.getDestination());
+    	int toPortNo = table.getCacheForMacAddr(frame.getDestination()).portNo;
     	if (toPortNo == -1) {
     		System.out.println("FFAFFAFAF");
     		return;
@@ -154,48 +156,36 @@ public class L2Switch extends Device {
 }
 
 class Table {
-	final static int TABLE_SIZE = 100;
-	private int count = 0;
-	private Cache[] cache = new Cache[TABLE_SIZE];
+	private ArrayList<Cache> cacheList;
 	
 	public Table() {
-		for (int i=0;i<TABLE_SIZE;i++) {
-			cache[i] = new Cache();
-		}
+		cacheList = new ArrayList<Cache>();
 	}
 	
 	public void setAddr(int portNo, long macAddr) {
-		int num = getNumberForAddr(macAddr);
-		if (num == -1) {
-			cache[count].portNo = portNo;
-			cache[count].macAddr = macAddr;
-			count++;
-			//Arrays.sort(cache);
+		Cache cache = getCacheForMacAddr(macAddr);
+		if (cache == null) {
+			cache = new Cache(portNo, macAddr);
+			cacheList.add(cache);
 		} else {
-			cache[num].portNo = portNo;
+			cache.portNo = portNo;
 		}
+		Collections.sort(cacheList);
 	}
 	
-	public int getPortForMacAddr(long macAddr) {
-		int num = getNumberForAddr(macAddr);
-		if (num == -1) {
-			return -1;
-		}
-		return cache[num].portNo;
-	}
-	
-	private int getNumberForAddr(long macAddr) {
-		for (int i=0;i<count;i++) {
-			if (cache[i].macAddr == macAddr) {
-				return i;
+	public Cache getCacheForMacAddr(long macAddr) {
+		for (Cache cache :cacheList) {
+			if (cache.macAddr == macAddr) {
+				return cache;
 			}
 		}
-		return -1;
+		return null;
 	}
 	
 	public void show() {
-		for (int i=0;i<count;i++) {
-			System.out.println(cache[i].portNo + " " + Util.long2addr(cache[i].macAddr));
+		System.out.println("PORT NUMBER   MAC ADDRESS");
+		for (Cache cache :cacheList) {
+			System.out.println(cache.portNo + " " + Util.long2addr(cache.macAddr));
 		}
 	}
 }
@@ -204,8 +194,22 @@ class Cache implements Comparable<Cache> {
 	int portNo;
 	long macAddr;
 	
+	public Cache(int portNo, long macAddr) {
+		this.portNo = portNo;
+		this.macAddr = macAddr;
+	}
+	
 	@Override
 	public int compareTo(Cache other) {
-        return this.portNo - other.portNo;
+        if (this.portNo != other.portNo) {
+        	return this.portNo - other.portNo;
+        }
+        if (this.macAddr > other.portNo) {
+        	return 1;
+        } else if (this.macAddr < other.portNo) {
+        	return -1;
+        } else {
+        	return 0;
+        }
 	}
 }

@@ -75,7 +75,7 @@ public class STP {
     	
 		initialisation();
 		this.timer = new java.util.Timer();
-		//setEnabled(true);
+		// setEnabled(true);
 	}
 	
 	public boolean isEnabled() {

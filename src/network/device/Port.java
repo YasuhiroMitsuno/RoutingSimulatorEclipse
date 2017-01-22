@@ -60,7 +60,7 @@ public class Port {
     		this.using = true;
     	}
         try {
-            Thread.sleep(0, 1);
+            Thread.sleep(100);
         }catch(InterruptedException e) {
         }
         if (this.inputQueue.put(frame)) {

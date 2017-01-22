@@ -1,6 +1,8 @@
 package network.protocol.L3;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import javax.management.relation.RoleInfo;
 
@@ -288,36 +290,47 @@ public class IPv4 {
 }
 
 class RouteInfo {
-	final static int TABLE_SIZE = 100;
-	private int count = 0;
-	private RouteData[] routeData = new RouteData[TABLE_SIZE];
+	private ArrayList<RouteData> routeDataList;
 	
 	public RouteInfo() {
-		for (int i=0;i<TABLE_SIZE;i++) {
-			routeData[i] = new RouteData();
-		}
+		routeDataList = new ArrayList<RouteData>();
 	}
 	
 	public void show() {
-		for (int i=0;i<count;i++) {
-			System.out.println(Util.int2addr(routeData[i].addr) + " " + 
-									Util.int2addr(routeData[i].mask) + " " + 
-									Util.int2addr(routeData[i].next));
+		for (RouteData routeData: routeDataList) {
+			System.out.println(Util.int2addr(routeData.addr) + " " + 
+									Util.int2addr(routeData.mask) + " " + 
+									Util.int2addr(routeData.next));
 		}
 	}
 	
 	public void setRoute(int addr, int mask, int next) {
-		routeData[count].addr = addr;
-		routeData[count].mask = mask;
-		routeData[count].next = next;
-		count++;
-		Arrays.sort(routeData);
+		RouteData routeData = getRouteDataForAddr(addr, mask);
+		if (routeData == null) {
+			routeData = new RouteData(addr, mask, next);
+			routeData.addr = addr;
+			routeData.mask = mask;
+			routeData.next = next;
+			routeDataList.add(routeData);
+			Collections.sort(routeDataList);
+		} else {
+			routeData.next = next;
+		}
+	}
+	
+	public RouteData getRouteDataForAddr(int addr, int mask) {
+		for (RouteData routeData: routeDataList) {
+			if (routeData.addr == addr && routeData.mask == mask) {
+				return routeData;
+			}
+		}
+		return null;
 	}
 	
 	public int getNextHop(int addr) {
-		for (int i=0;i<count;i++) {
-			if (IPv4.isSameNetwork(addr, routeData[i].addr, routeData[i].mask)) {
-				return  routeData[i].next;
+		for (RouteData routeData: routeDataList) {
+			if (IPv4.isSameNetwork(addr, routeData.addr, routeData.mask)) {
+				return  routeData.next;
 			}
 		}
 		return 0;
@@ -327,9 +340,19 @@ class RouteInfo {
 		int addr;
 		int mask;
 		int next;
+		
+		public RouteData(int addr, int mask, int next) {
+			this.addr = addr;
+			this.mask = mask;
+			this.next = next;
+		}
+		
 		@Override
 		public int compareTo(RouteData o) {
-			return this.mask - o.mask;
+			if (this.mask != o.mask) {
+				return this.mask - o.mask;
+			}
+			return this.addr - o.addr;
 		}
 	}
 }

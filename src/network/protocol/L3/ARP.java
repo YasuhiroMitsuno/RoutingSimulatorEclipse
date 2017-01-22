@@ -1,6 +1,8 @@
 package network.protocol.L3;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 
 import network.datagram.L2.Frame;
@@ -54,7 +56,11 @@ public class ARP {
 	}
 	
 	public long getMacAddrForIpAddr(int ipAddr) {
-		return table.getMacAddrForIpAddr(ipAddr);
+		Cache cache = table.getCacheForIpAddr(ipAddr);
+		if (cache == null) {
+			return -1;
+		}
+		return cache.macAddr;
 	}
 	
 	private void sendRequest(ARPPacket arpPacket, int portNo) {
@@ -93,48 +99,35 @@ public class ARP {
 }
 
 class Table {
-	final static int TABLE_SIZE = 100;
-	private int count = 0;
-	private Cache[] cache = new Cache[TABLE_SIZE];
+	private ArrayList<Cache> cacheList;
 	
 	public Table() {
-		for (int i=0;i<TABLE_SIZE;i++) {
-			cache[i] = new Cache();
-		}
+		cacheList = new ArrayList<Cache>();
 	}
 	
 	public void setAddr(int ipAddr, long macAddr) {
-		int num = getNumberForAddr(ipAddr);
-		if (num == -1) {
-			cache[count].ipAddr = ipAddr;
-			cache[count].macAddr = macAddr;
-			count++;
-			//Arrays.sort(cache);
+		Cache cache = getCacheForIpAddr(ipAddr);
+		if (cache == null) {
+			cache = new Cache(ipAddr, macAddr);
+			cacheList.add(cache);
+			Collections.sort(cacheList);
 		} else {
-			cache[num].macAddr = macAddr;
+			cache.macAddr = macAddr;
 		}
 	}
 	
-	public long getMacAddrForIpAddr(int ipAddr) {
-		int num = getNumberForAddr(ipAddr);
-		if (num == -1) {
-			return -1;
-		}
-		return cache[num].macAddr;
-	}
-	
-	private int getNumberForAddr(int ipAddr) {
-		for (int i=0;i<count;i++) {
-			if (cache[i].ipAddr == ipAddr) {
-				return i;
+	public Cache getCacheForIpAddr(int ipAddr) {
+		for (Cache cache: cacheList) { 
+			if (cache.ipAddr == ipAddr) {
+				return cache;
 			}
 		}
-		return -1;
+		return null;
 	}
-	
+
 	public void show() {
-		for (int i=0;i<count;i++) {
-			System.out.println(Util.int2addr(cache[i].ipAddr) + " " + Util.long2addr(cache[i].macAddr));
+		for (Cache cache: cacheList) { 
+			System.out.println(Util.int2addr(cache.ipAddr) + " " + Util.long2addr(cache.macAddr));
 		}
 	}
 }
@@ -142,6 +135,11 @@ class Table {
 class Cache implements Comparable<Cache> {
 	int ipAddr;
 	long macAddr;
+	
+	public Cache(int ipAddr, long macAddr) {
+		this.ipAddr = ipAddr;
+		this.macAddr = macAddr;
+	}
 	
 	@Override
 	public int compareTo(Cache other) {
