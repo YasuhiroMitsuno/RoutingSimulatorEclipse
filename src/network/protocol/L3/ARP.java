@@ -83,6 +83,7 @@ public class ARP {
 	}
 	
 	private void getReply(ARPPacket arpPacket) {
+		System.out.println("SET ARP " + Util.int2addr(arpPacket.getSourceProtocolAddress()) + " " + Util.long2addr(arpPacket.getSourceHardwareAddress()));
 		table.setAddr(arpPacket.getSourceProtocolAddress(), arpPacket.getSourceHardwareAddress());
 	}
 	
@@ -108,7 +109,7 @@ class Table {
 			cache[count].ipAddr = ipAddr;
 			cache[count].macAddr = macAddr;
 			count++;
-			Arrays.sort(cache);
+			//Arrays.sort(cache);
 		} else {
 			cache[num].macAddr = macAddr;
 		}

@@ -239,6 +239,9 @@ public abstract class Device {
             }
         }
     }
+    public void showMacTable() {
+    	
+    }
 
     class MakeFragmentThread extends Thread {
         private Device delegate;

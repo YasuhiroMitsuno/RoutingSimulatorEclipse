@@ -213,6 +213,13 @@ public class IPv4 {
 		return portNo;
 	}
 	
+	public int nextHop(int addr) {
+		if (sameNetworkPort(addr) == -1) {
+			return routeInfo.getNextHop(addr);
+		}
+		return addr;
+	}
+	
 	public void receivedPacket(Packet packet, int fromPortNo) {
     	System.out.println(packet.description());
     	
@@ -261,7 +268,8 @@ public class IPv4 {
 	
 	private void sendPacket(Packet packet) {
 		int portNo = nextPort(packet.getDestination());
-		long macAddr = delegate.arp.getMacAddrForIpAddr(packet.getDestination());
+		int nextHop = nextHop(packet.getDestination());
+		long macAddr = delegate.arp.getMacAddrForIpAddr(nextHop);
 		if (macAddr == -1) {
 			System.out.println("NO MAC ADDRESS FOR" + Util.int2addr(packet.getDestination()));
 			delegate.arp.arp(packet.getDestination());

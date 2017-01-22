@@ -56,6 +56,15 @@ public class Frame {
         setStandard(STANDARD_ETHERNET_2);
     }
     
+    public Frame(long destination, long source, int type, byte[] data) {
+    	this();
+    	setDestination(destination);
+    	setDestination(destination);
+    	setLength(type);
+    	setData(data);
+    	
+    }
+    
     public Frame(Frame frame) {
     	this(frame.getBytes());
     }
@@ -75,7 +84,9 @@ public class Frame {
         this.bytes          = bytes;
         standard = bytes[7];
         this.destination    = Util.byte2long(bytes, 8, 6);
+        this.destination = destination << 16 >> 16;
         this.source    		= Util.byte2long(bytes, 14, 6);
+        this.source = this.source << 16 >> 16;
         this.length         = (bytes[20] & 0xFF) << 8 | bytes[21] & 0xFF;
     }
     
@@ -108,6 +119,7 @@ public class Frame {
         this.bytes[19] = source[5];
     }
     public void setSource(long source) {
+    	source = source << 16 >> 16;
         this.source = source;
         this.bytes[14] = (byte)(source >> 40 & 0xFF);
         this.bytes[15] = (byte)(source >> 32 & 0xFF);
@@ -126,6 +138,7 @@ public class Frame {
     }
 
     public void setData(byte[] data) {
+    	/*
         if (data.length >= 1536) {
             setLength(data.length);
         } else {
@@ -137,6 +150,9 @@ public class Frame {
         } else {
             newBytes = new byte[this.length];
         }
+        */
+    	byte[] newBytes;
+    	newBytes = new byte[22 + data.length];
         /* Copy Header */
         System.arraycopy(this.bytes, 0, newBytes, 0, 22);
         System.arraycopy(data, 0, newBytes, 22, data.length);
@@ -144,6 +160,7 @@ public class Frame {
     }
 
     public byte[] getData() {
+    	/*
         int len;
         if (this.length >= 1536) {
             len = this.length;
@@ -153,8 +170,9 @@ public class Frame {
         } else {
             len = this.length;//this.length - 22;
         }
-        byte[] data = new byte[len];
-        System.arraycopy(this.bytes, 22, data, 0, len);
+        */
+        byte[] data = new byte[this.bytes.length - 22];
+        System.arraycopy(this.bytes, 22, data, 0, this.bytes.length - 22);
         return data;
     }
 
@@ -178,8 +196,8 @@ public class Frame {
     @Deprecated
     public void setLength(int length) {
         this.length = length & 0xFFFF;
-        this.bytes[12] = (byte)(this.length >> 8 & 0xFF);
-        this.bytes[13] = (byte)(this.length & 0xFF);
+        this.bytes[20] = (byte)(this.length >> 8 & 0xFF);
+        this.bytes[21] = (byte)(this.length & 0xFF);
     }
 
     public int getLength() {

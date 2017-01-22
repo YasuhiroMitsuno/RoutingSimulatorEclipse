@@ -4,6 +4,7 @@ import network.datagram.L2.Frame;
 import network.datagram.L3.ARPPacket;
 import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
+import network.datagram.L3.Util;
 import network.protocol.L2.STP.STP;
 
 public class Terminal extends L2Switch {
@@ -20,6 +21,15 @@ public class Terminal extends L2Switch {
     	this.portSize = 1;
     	this.type = "Terminal";    	
     	stp = new STP(this);
+    }
+    
+    @Override
+    protected boolean forme(Frame frame) {
+    	if (frame.getDestination() != MACAddress && 
+        		frame.getDestination() != Util.addr2long("FF:FF:FF:FF:FF:FF")) {
+    		return true;
+    	}
+    	return false;
     }
     
 	protected void doForFrame(Frame frame, int fromPortNo) {

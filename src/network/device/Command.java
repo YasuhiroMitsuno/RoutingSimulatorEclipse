@@ -124,6 +124,11 @@ public class Command {
 	}
 	
 	private void showMAC() {
-		delegate.showMAC();
+		String a = next();
+		if (a == null) {
+			delegate.showMAC();
+			return;
+		}
+		delegate.showMacTable();
 	}
 }
