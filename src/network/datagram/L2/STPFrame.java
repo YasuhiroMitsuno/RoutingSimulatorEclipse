@@ -95,6 +95,14 @@ public class STPFrame {
         this.rootId = rootId;
         this.rootBridgePriority = (int)(rootId >> 48 & 0xFFFF);
         this.rootBridgeAddress = (rootId << 16) >> 16;
+        this.bytes[5] = (byte)(rootId >> 56 & 0xFF);
+        this.bytes[6] = (byte)(rootId >> 48 & 0xFF);
+        this.bytes[7] = (byte)(rootId >> 40 & 0xFF);
+        this.bytes[8] = (byte)(rootId >> 32 & 0xFF);
+        this.bytes[9] = (byte)(rootId >> 24 & 0xFF);
+        this.bytes[10] = (byte)(rootId >> 16 & 0xFF);
+        this.bytes[11] = (byte)(rootId >> 8 & 0xFF);
+    	this.bytes[12] = (byte)(rootId & 0xFF);
     }
     
     @Deprecated
@@ -129,6 +137,14 @@ public class STPFrame {
         this.bridgeId = bridgeId;
         this.bridgePriority = (int)(bridgeId >> 48 & 0xFFFF);
         this.bridgeAddress = (bridgeId << 16) >> 16;
+        this.bytes[17] = (byte)(bridgeId >> 56 & 0xFF);
+        this.bytes[18] = (byte)(bridgeId >> 48 & 0xFF);
+        this.bytes[19] = (byte)(bridgeId >> 40 & 0xFF);
+        this.bytes[20] = (byte)(bridgeId >> 32 & 0xFF);
+        this.bytes[21] = (byte)(bridgeId >> 24 & 0xFF);
+        this.bytes[22] = (byte)(bridgeId >> 16 & 0xFF);
+        this.bytes[23] = (byte)(bridgeId >> 8 & 0xFF);
+    	this.bytes[24] = (byte)(bridgeId & 0xFF);
     }
 
     public void setBridgePriority(int priority) {

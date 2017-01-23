@@ -64,7 +64,7 @@ public class Port {
         }catch(InterruptedException e) {
         }
         if (this.inputQueue.put(frame)) {
-            inStat += frame.getLength();
+            inStat += frame.getBytes().length;//frame.getLength();
         }
         this.using = false;
     }

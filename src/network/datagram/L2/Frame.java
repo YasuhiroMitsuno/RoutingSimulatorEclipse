@@ -71,8 +71,8 @@ public class Frame {
     
     public Frame(LLCU llcu) {
     	this();
-       	setStandard(STANDARD_IEEE_802_3);
-      	setData(llcu.getData());
+    	setStandard(STANDARD_IEEE_802_3);
+      	setData(llcu.getBytes());
     }
 
     public void setStandard(byte type) {
@@ -189,7 +189,7 @@ public class Frame {
         }
         str += "\n\tDestination Address: " + Util.long2Addr(this.destination);
         str += "\n\tSource Address: " + Util.long2Addr(this.source);
-        str += "\n\tSource Address: " + String.format("%04x", length);
+        str += "\n\tType or Length: " + String.format("%04x", length);
         return str;
     }
 

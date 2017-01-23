@@ -10,6 +10,7 @@ import java.awt.Graphics2D;
 import java.awt.Color;
 
 import network.datagram.L2.Frame;
+import network.datagram.L2.LLCU;
 import network.datagram.L2.Util;
 import network.datagram.L3.ICMPDatagram;
 import network.datagram.L3.Packet;
@@ -138,6 +139,14 @@ public abstract class Device {
         //if ((stp != null && stp.willSendFrame(portNo))) {
 
 //        }
+    }
+    
+    public void broadcastData(LLCU llcu , int lengthOrType, int toPortNo) {
+    	Frame frame = new Frame(llcu);
+    	frame.setDestination("FF:FF:FF:FF:FF:FF");
+    	frame.setSource(this.MACAddress);
+    	frame.setLength(lengthOrType);
+    	sendFrame(toPortNo, frame);
     }
 
     public void broadcastData(byte[] data, int lengthOrType, int toPortNo) {
