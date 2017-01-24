@@ -23,7 +23,7 @@ public class STP {
 	final static int ZERO = 0;	
 	final static int ONE = 1;
 	final static int NO_PORT = 0;
-	final static int NO_Of_PORTS = 4;
+	final static int NO_Of_PORTS = 6;
 	final static int ALL_PORTS = NO_Of_PORTS + 1;
 	final static int DEFAULT_PATH_COST = 10;
 	final static int MESSAGE_AGE_INCREMENT = 1;
@@ -106,13 +106,11 @@ public class STP {
 	    stpFrame.setFlags(config.topologyChangeAcknowledgement? stpFrame.getFlags() | 0x80: stpFrame.getFlags() ^ 0x80); 
 	    stpFrame.setFlags(config.topologyChange? stpFrame.getFlags() | 0x01: stpFrame.getFlags() ^ 0x01);
 		LLCU llcu = LLC.llcuFromBPDU(stpFrame);
-		System.out.println("sendConfig " + new STPFrame(llcu.getData()).description());
 		delegate.broadcastData(llcu, 0, portNo-1);
-//		delegate.sendFrame(portNo-1, frame);
 	}
 	
 	public void receivedBPDU(int portNo, STPFrame stpFrame) {
-		if (!enabled) return;		
+		if (!enabled) return;
 		if (stpFrame.getMessageType() == CONFIG_BPDU_TYPE) {
 			ConfigBPDU config = new ConfigBPDU(stpFrame);
 			receivedConfigBPDU(portNo + 1, config);
@@ -226,7 +224,7 @@ public class STP {
     }
     
     private void configBPDUGeneration() {
-    	for (int portNo = ONE; portNo < NO_Of_PORTS; portNo++) {
+    	for (int portNo = ONE; portNo <= NO_Of_PORTS; portNo++) {
     		if (designatedPort(portNo) && portInfo[portNo].state != State.DISABLED) {
     			transmitConfig(portNo);
     		}
