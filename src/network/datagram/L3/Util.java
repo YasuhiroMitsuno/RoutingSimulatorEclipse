@@ -69,6 +69,21 @@ public class Util {
         return addr;
     }
     
+    private static int numofbits(int bits)
+    {
+        int num;
+
+        num = (bits >> 1) & 03333333333;
+        num = bits - num - ((num >> 1) & 03333333333);  
+        num = ((num + (num >> 3)) & 0707070707) % 077;
+
+        return num;
+    }
+    
+    public static int mask2int(int mask) {
+    	return 32 - numofbits((mask & -mask)-1);
+    }
+    
     public static boolean equalsAddr(byte[] A, byte[] B) {
     	if (A.length != B.length) return false;
     	for (int i=0;i<A.length;i++) {

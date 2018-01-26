@@ -30,7 +30,7 @@ class DeviceController extends Thread {
     List<Integer[]> offset;
     boolean drawOval = false;
     boolean drawDescription = false;
-    int a = 0;
+
     L2SwitchFactory l2SwitchFactory;
     L3SwitchFactory l3SwitchFactory;    
     TerminalFactory terminalFactory;
@@ -185,16 +185,14 @@ class DeviceController extends Thread {
         }
         */
     }
-    public void invoke_join() {
-        /*
+    public void openConsole() {
         for(int i=0;i<devices.size();i++) {
             Device d = devices.get(i);
             if (d.selected) {
-                d.invoke_join();
+            	Console console = new Console(d);
                 break;
             }
         }
-        */
     }
     public double distance(Device d1, Device d2) {
 	return Math.sqrt(Math.pow(d1.position.getX() - d2.position.getX(), 2) +

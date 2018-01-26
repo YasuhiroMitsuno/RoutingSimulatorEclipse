@@ -82,15 +82,21 @@ public class L2Switch extends Device {
     }
     
     final public void fetch(Frame frame, int fromPortNo) {
-    	System.out.println(type + " " + Util.long2addr(MACAddress) + " "+ fromPortNo + "\n" + frame.description());    	
-    	table.setAddr(fromPortNo, frame.getSource());
     	if (!portEnable(fromPortNo)) {
     		discardFrame(frame);
     		return;
     	}
     	
+    	if (debug) {
+    		System.out.println(type + " " + Util.long2addr(MACAddress) + " "+ fromPortNo + "\n" + frame.description());    	
+    	}
+    	if (stp.getState(fromPortNo) != State.BLOCKING) {
+    		table.setAddr(fromPortNo, frame.getSource());
+    	}
+
+    	
     	if (forme(frame)) {
-    		System.out.println("DELETE");
+    		if (debug) { System.out.println("DELETE"); }
     		return;
     	}
 
@@ -98,14 +104,14 @@ public class L2Switch extends Device {
     		doForFrame(frame, fromPortNo);
     	} else if (frame.getStandard() == Frame.STANDARD_IEEE_802_3) {
     		LLCU llcu = new LLCU(frame);
-    		System.out.println(llcu.description());
+    		if (debug) { System.out.println(llcu.description()); }
     		if (llcu.getDsap() == LLC.STP) {
     			STPFrame stpFrame = new STPFrame(llcu.getData());
-    			System.out.println(stpFrame.description());
+    			if (debug) { System.out.println(stpFrame.description()); }
     			stp.receivedBPDU(fromPortNo, stpFrame);
     		}
     	} else {
-    		System.out.println("UNKNOWN");
+    		if (debug) {System.out.println("UNKNOWN"); }
     	}
 
      }
@@ -114,13 +120,11 @@ public class L2Switch extends Device {
     	Frame rFrame = new Frame(frame.getDestination(), this.MACAddress, frame.getLength(), frame.getData());
     	if (frame.getDestination() == Util.addr2long("FF:FF:FF:FF:FF:FF")) {
     		/* broardcast */
-    		System.out.println("Broad");
     		if (stp.willSendFrame(fromPortNo)) {
     			fradding(frame, fromPortNo);
     		}
     	} else {
     		/* unicast */
-    		System.out.println("uni");
     		transmit(frame, fromPortNo);
     	}
     }

@@ -13,10 +13,10 @@ class ActivationInputQueue<T extends Frame> extends ActivationQueue<T> {
     public void run() {
         while(true) {
             fetch(take());
-            //                try {
-            //                    Thread.sleep(1);
-            //                } catch (InterruptedException e) {
-            //                }
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+            }
         }
     }
     

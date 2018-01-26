@@ -60,7 +60,7 @@ public class Port {
     		this.using = true;
     	}
         try {
-            Thread.sleep(100);
+            Thread.sleep(10, 1);
         }catch(InterruptedException e) {
         }
         if (this.inputQueue.put(frame)) {
@@ -161,11 +161,9 @@ public class Port {
         g.drawString("↓" + getByteString(inStat), 15, -7);
         g.drawString("↑" + getByteString(outStat), 85, -7);
 
-/*
         g.setColor(Color.GREEN);
         g.drawString(inputQueue.ratioString(), 15, 0);
         g.setColor(Color.BLUE);
         g.drawString(outputQueue.ratioString(), 15 + 70, 0);
-*/
     }
 }

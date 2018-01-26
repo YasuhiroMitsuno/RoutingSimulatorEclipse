@@ -24,7 +24,7 @@ import network.protocol.L3.IPv4;
 public abstract class Device {
 	protected Logger logger;
     protected Port[] ports;
-    protected int portSize = 4;
+    protected int portSize = 6;
     protected String name;
     protected String type;
     public Point2D position;
@@ -35,6 +35,7 @@ public abstract class Device {
 	private Command command;
 	public IPv4 ipv4;
 	public ARP arp;
+	protected boolean debug;
 	STP stp;    
 
     public static void connect(Device d1, Device d2) {
@@ -64,6 +65,7 @@ public abstract class Device {
     	command = new Command(this);
     	ipv4 = new IPv4(this);
     	arp = new ARP(this);
+    	debug = false;
     }
     
     public Device(long addr) {
@@ -304,6 +306,7 @@ public abstract class Device {
     
     public void setIP(int portNo, int addr, int mask) {
 		ipv4.setIP(portNo, addr, mask);
+		arp.arp(addr);
 	}
 	
 	public void ping(int addr) {
@@ -325,4 +328,8 @@ public abstract class Device {
 	public void showInterface() {
 		System.out.println(Util.long2Addr(MACAddress));
 	}
+	
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}	
 }

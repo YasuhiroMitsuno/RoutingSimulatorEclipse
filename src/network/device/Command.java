@@ -38,6 +38,9 @@ public class Command {
 		case "show":
 			show();
 			break;
+		case "debug":
+			debug();
+			break;
 		}
 	}
 	
@@ -130,5 +133,16 @@ public class Command {
 			return;
 		}
 		delegate.showMacTable();
+	}
+	
+	private void debug() {
+		switch (next()) {
+		case "enable":
+			delegate.setDebug(true);
+			break;
+		case "disable":
+			delegate.setDebug(false);
+			break;
+		}
 	}
 }

@@ -180,6 +180,7 @@ public class IPv4 {
 	public void setIP(int portNo, int addr, int mask) {
 		portInfo[portNo].addr = addr;
 		portInfo[portNo].mask = mask;
+		routeInfo.setIP(portNo, addr, mask);
 	}
 	
 
@@ -298,19 +299,33 @@ class RouteInfo {
 	
 	public void show() {
 		for (RouteData routeData: routeDataList) {
-			System.out.println(Util.int2addr(routeData.addr) + " " + 
-									Util.int2addr(routeData.mask) + " " + 
-									Util.int2addr(routeData.next));
+			if (routeData.type == 0) {
+				System.out.println(Util.int2addr(routeData.addr) + "/" + 
+										Util.mask2int(routeData.mask) + " via " + 
+										Util.int2addr(routeData.next));
+			} else {
+				System.out.println(Util.int2addr(routeData.addr) + "/" + Util.mask2int(routeData.mask) + 
+						" is directly connected, " + "FastEthernet0/" + routeData.port);
+			}
+		}
+	}
+	
+	public void setIP(int port, int addr, int mask) {
+		RouteData routeData = getRouteDataForPort(port);	
+		if (routeData == null) {
+			routeData = new RouteData(addr & mask, mask, 0, 1, port);
+			routeDataList.add(routeData);
+			Collections.sort(routeDataList);
+		} else {
+			routeData.addr = addr & mask;
+			routeData.mask = mask;
 		}
 	}
 	
 	public void setRoute(int addr, int mask, int next) {
 		RouteData routeData = getRouteDataForAddr(addr, mask);
 		if (routeData == null) {
-			routeData = new RouteData(addr, mask, next);
-			routeData.addr = addr;
-			routeData.mask = mask;
-			routeData.next = next;
+			routeData = new RouteData(addr, mask, next, 0, 0);
 			routeDataList.add(routeData);
 			Collections.sort(routeDataList);
 		} else {
@@ -327,6 +342,15 @@ class RouteInfo {
 		return null;
 	}
 	
+	public RouteData getRouteDataForPort(int port) {
+		for (RouteData routeData: routeDataList) {
+			if (routeData.type == 0 && routeData.port == port) {
+				return routeData;
+			}
+		}
+		return null;
+	}
+	
 	public int getNextHop(int addr) {
 		for (RouteData routeData: routeDataList) {
 			if (IPv4.isSameNetwork(addr, routeData.addr, routeData.mask)) {
@@ -337,16 +361,20 @@ class RouteInfo {
 	}
 	
 	class RouteData implements Comparable<RouteData> {
+		int type;
 		int addr;
 		int mask;
 		int next;
+		int port;
 		
-		public RouteData(int addr, int mask, int next) {
+		public RouteData(int addr, int mask, int next, int type, int port) {
 			this.addr = addr;
 			this.mask = mask;
 			this.next = next;
+			this.type = type;
+			this.port = port;
 		}
-		
+
 		@Override
 		public int compareTo(RouteData o) {
 			if (this.mask != o.mask) {

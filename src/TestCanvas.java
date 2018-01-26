@@ -74,9 +74,9 @@ class TestCanvas extends Canvas implements MouseListener, MouseMotionListener, M
 		    deviceController.send_packet();
 		}
 	    });
-    addPopupMenuItem("参加", new ActionListener() {
+    addPopupMenuItem("コンソールを開く", new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-            deviceController.invoke_join();
+            deviceController.openConsole();
         }
         });
 	/* リスナー登録 */

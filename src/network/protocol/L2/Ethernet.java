@@ -42,6 +42,7 @@ public class Ethernet {
     }
     
     private void receiveDataDecapsulation(Frame frame) {
+    	/*
     	if (!Util.equalsAddr(frame.getDestination(), delegate.getMACAddress())) {
     		return;
     	}
@@ -50,6 +51,7 @@ public class Ethernet {
     	if (frame.getLength() == 0x0806) {
     		arp
     	}
+    	*/
     }
     
     private void request(byte[] destinationAddress, byte[] sourceAddress, int macServiceDataUnit,byte[] frameCheckSequence) {

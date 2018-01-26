@@ -17,10 +17,10 @@ abstract class ActivationQueue<T>  extends Thread {
     public void run() {
         while(true) {
             fetch(take());
-            // try {
-            //     Thread.sleep(10);
-            // } catch (InterruptedException e) {
-            // }
+             try {
+                 Thread.sleep(10);
+             } catch (InterruptedException e) {
+             }
         }
     }
 
